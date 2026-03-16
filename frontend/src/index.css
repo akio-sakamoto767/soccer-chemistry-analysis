@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-900 text-white;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200;
+  }
+  
+  .btn-accent {
+    @apply bg-accent-600 hover:bg-accent-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200;
+  }
+  
+  .btn-warning {
+    @apply bg-warning-600 hover:bg-warning-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200;
+  }
+  
+  .card {
+    @apply bg-slate-800 rounded-lg shadow-md border border-slate-700 p-6 text-white;
+  }
+  
+  .feature-card {
+    @apply bg-slate-800 rounded-lg shadow-md border border-slate-700 p-6 hover:shadow-lg transition-shadow duration-200 text-white;
+  }
+  
+  .chemistry-high {
+    @apply text-green-600 font-semibold;
+  }
+  
+  .chemistry-medium {
+    @apply text-yellow-600 font-semibold;
+  }
+  
+  .chemistry-low {
+    @apply text-red-600 font-semibold;
+  }
+  
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent;
+  }
+  
+  .glass-card {
+    @apply bg-slate-800/50 backdrop-blur-md rounded-xl border border-slate-600/30 p-6 shadow-lg;
+  }
+  
+  .card-gradient {
+    @apply bg-slate-800/50 backdrop-blur-md rounded-xl border border-slate-600/30 p-8 shadow-lg;
+  }
+  
+  .glass-select {
+    @apply bg-slate-800/50 backdrop-blur-md border border-slate-600/30 rounded-lg text-white;
+  }
+  
+  .glass-select option {
+    @apply bg-slate-800 text-white;
+  }
+  
+  .glass-panel {
+    @apply bg-slate-800/30 backdrop-blur-sm border border-slate-600/20;
+  }
+}
+
+/* Enhanced scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
