@@ -116,14 +116,19 @@ const TeamNetwork = () => {
             <select
               value={formation}
               onChange={(e) => setFormation(e.target.value)}
-              className="glass-select w-full px-4 py-3 text-lg"
+              className="w-full px-4 py-3 text-lg rounded-md bg-slate-700 border border-slate-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
               disabled={loading}
+              style={{
+                backgroundColor: '#334155',
+                color: '#ffffff',
+                border: '1px solid #475569'
+              }}
             >
-              <option value="4-3-3">4-3-3</option>
-              <option value="4-4-2">4-4-2</option>
-              <option value="4-2-3-1">4-2-3-1</option>
-              <option value="3-5-2">3-5-2</option>
-              <option value="3-4-3">3-4-3</option>
+              <option value="4-3-3" style={{ backgroundColor: '#334155', color: '#ffffff' }}>4-3-3</option>
+              <option value="4-4-2" style={{ backgroundColor: '#334155', color: '#ffffff' }}>4-4-2</option>
+              <option value="4-2-3-1" style={{ backgroundColor: '#334155', color: '#ffffff' }}>4-2-3-1</option>
+              <option value="3-5-2" style={{ backgroundColor: '#334155', color: '#ffffff' }}>3-5-2</option>
+              <option value="3-4-3" style={{ backgroundColor: '#334155', color: '#ffffff' }}>3-4-3</option>
             </select>
           </div>
 
@@ -134,12 +139,17 @@ const TeamNetwork = () => {
             <select
               value={viewMode}
               onChange={(e) => setViewMode(e.target.value)}
-              className="glass-select w-full px-4 py-3 text-lg"
+              className="w-full px-4 py-3 text-lg rounded-md bg-slate-700 border border-slate-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
               disabled={loading}
+              style={{
+                backgroundColor: '#334155',
+                color: '#ffffff',
+                border: '1px solid #475569'
+              }}
             >
-              <option value="average">Average Chemistry</option>
-              <option value="offensive">Offensive Chemistry</option>
-              <option value="defensive">Defensive Chemistry</option>
+              <option value="average" style={{ backgroundColor: '#334155', color: '#ffffff' }}>Average Chemistry</option>
+              <option value="offensive" style={{ backgroundColor: '#334155', color: '#ffffff' }}>Offensive Chemistry</option>
+              <option value="defensive" style={{ backgroundColor: '#334155', color: '#ffffff' }}>Defensive Chemistry</option>
             </select>
           </div>
 

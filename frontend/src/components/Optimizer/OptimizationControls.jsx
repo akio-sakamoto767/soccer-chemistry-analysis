@@ -40,10 +40,22 @@ const OptimizationControls = ({
         <select
           value={formation}
           onChange={(e) => setFormation(e.target.value)}
-          className="glass-input w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400"
+          className="w-full px-3 py-2 rounded-md bg-slate-700 border border-slate-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+          style={{
+            backgroundColor: '#334155',
+            color: '#ffffff',
+            border: '1px solid #475569'
+          }}
         >
           {formations.map(f => (
-            <option key={f.value} value={f.value}>
+            <option 
+              key={f.value} 
+              value={f.value}
+              style={{
+                backgroundColor: '#334155',
+                color: '#ffffff'
+              }}
+            >
               {f.label}
             </option>
           ))}
