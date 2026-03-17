@@ -21,7 +21,17 @@ logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+
+# Configure CORS with specific origins
+cors_origins = [
+    "http://localhost:5173",  # Local development
+    "http://127.0.0.1:5173",  # Local development alternative
+    "https://frontend-alpha-weld-87.vercel.app",  # Vercel production
+    "https://frontend-xz52euflz-itbusiness999code-2109s-projects.vercel.app",  # Vercel production alternative
+    "https://*.vercel.app"  # All Vercel deployments for this project
+]
+
+CORS(app, origins=cors_origins)
 
 # Initialize data loader
 data_loader = DataLoader()
@@ -111,6 +121,26 @@ def health_check():
         "status": "healthy",
         "message": "Soccer Chemistry API is running"
     })
+
+# Data status endpoint
+@app.route('/api/data/status', methods=['GET'])
+def data_status():
+    """Get data loading status and information."""
+    try:
+        from data_manager import data_manager
+        
+        info = data_manager.get_data_info()
+        
+        return jsonify({
+            "status": "success",
+            "data": info,
+            "message": "Data is ready" if info["is_complete"] else "Data incomplete"
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "error": str(e)
+        }), 500
 
 # Players endpoints
 @app.route('/api/players', methods=['GET'])
@@ -282,5 +312,7 @@ def get_formations():
     return jsonify({"formations": formations})
 
 if __name__ == '__main__':
+    # Get port from environment variable (Railway sets this)
+    port = int(os.environ.get('PORT', 8000))
     # Run the app
-    app.run(host='127.0.0.1', port=8000, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)

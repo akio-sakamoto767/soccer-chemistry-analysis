@@ -70,8 +70,14 @@ class DataLoader:
         
         return data
     
-    def load_data(self, data_path: str):
+    def load_data(self, data_path: str = "data"):
         """Load all CSV files and create enriched datasets."""
+        # Ensure data is available before loading
+        from data_manager import data_manager
+        
+        if not data_manager.ensure_data_available():
+            raise Exception("Unable to load required data files")
+        
         self.data_path = Path(data_path)
         logger.info(f"Loading data from {self.data_path}")
         
