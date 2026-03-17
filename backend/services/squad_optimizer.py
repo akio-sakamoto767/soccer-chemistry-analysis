@@ -76,7 +76,7 @@ class SquadOptimizer:
         logger.info(f"Optimization complete:")
         logger.info(f"  - Total chemistry: {total_chemistry:.2f}")
         logger.info(f"  - Average chemistry: {average_chemistry:.2f}")
-        logger.info(f"  - Top partnership: {top_partnerships[0]['chemistry']:.2f} if top_partnerships else 'None'}")
+        logger.info(f"  - Top partnership: {top_partnerships[0]['chemistry']:.2f if top_partnerships else 'None'}")
         logger.info(f"  - Weakest partnership: {weakest_link['chemistry']:.2f if weakest_link else 'None'}")
         logger.info(f"  - Chemistry type: {'Offensive' if weight > 0.6 else 'Defensive' if weight < 0.4 else 'Balanced'}")
         

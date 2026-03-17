@@ -1,0 +1,32 @@
+# Critical fixes for Railway deployment
+
+## 1. Add /api/health endpoint to flask_app.py
+
+Add this after the existing /health endpoint:
+
+```python
+@app.route('/api/health', methods=['GET'])
+def api_health_check():
+    """API health check endpoint for Railway."""
+    return jsonify({
+        "status": "healthy",
+        "message": "Soccer Chemistry API is running",
+        "version": "1.0.0"
+    })
+```
+
+## 2. Fix f-string syntax error in squad_optimizer.py
+
+Change line 79 from:
+```python
+logger.info(f"  - Top partnership: {top_partnerships[0]['chemistry']:.2f} if top_partnerships else 'None'}")
+```
+
+To:
+```python
+logger.info(f"  - Top partnership: {top_partnerships[0]['chemistry']:.2f if top_partnerships else 'None'}")
+```
+
+## 3. Make data loading optional in flask_app.py
+
+Wrap the initialize_data() call in a try-except block to prevent crashes.

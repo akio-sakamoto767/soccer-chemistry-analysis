@@ -36,36 +36,50 @@ CORS(app, origins=cors_origins)
 # Initialize data loader
 data_loader = DataLoader()
 
-# Load data on startup
+# Load data on startup (non-blocking)
 def initialize_data():
     """Load data on startup."""
     try:
-        data_loader.load_data("../data")  # Correct path from backend directory
-        logger.info("Data loaded successfully")
-    except Exception as e:
-        logger.error(f"Failed to load data: {e}")
-        # Try alternative path
-        try:
+        # Try to load data if available
+        if os.path.exists("../data"):
             data_loader.load_data("../data")
             logger.info("Data loaded successfully from ../data")
-        except Exception as e2:
-            logger.error(f"Failed to load data from ../data: {e2}")
+        elif os.path.exists("data"):
+            data_loader.load_data("data")
+            logger.info("Data loaded successfully from data")
+        else:
+            logger.warning("No data directory found - running without preloaded data")
+            logger.info("Data will be loaded on-demand from external source")
+    except Exception as e:
+        logger.error(f"Failed to load data: {e}")
+        logger.info("Continuing without preloaded data - will use external data source")
 
-# Initialize data when module loads
-initialize_data()
+# Try to initialize data, but don't fail if it doesn't work
+try:
+    initialize_data()
+except Exception as e:
+    logger.error(f"Data initialization failed: {e}")
+    logger.info("App will continue without preloaded data")
 
 # Root endpoint
 @app.route('/', methods=['GET'])
 def root():
     """Root endpoint with API information."""
     try:
-        players = data_loader.get_players(limit=1)
+        # Try to get players, but don't fail if data isn't loaded
+        try:
+            players = data_loader.get_players(limit=1)
+            data_loaded = len(players) > 0
+        except:
+            data_loaded = False
+            
         return jsonify({
             "message": "Soccer Chemistry API",
             "status": "running",
-            "data_loaded": len(players) > 0,
+            "data_loaded": data_loaded,
             "endpoints": {
                 "health": "/health",
+                "api_health": "/api/health",
                 "debug": "/debug", 
                 "players": "/api/players",
                 "chemistry": "/api/chemistry/pair",
@@ -74,7 +88,13 @@ def root():
             }
         })
     except Exception as e:
+        logger.error(f"Root endpoint error: {e}")
         return jsonify({
+            "message": "Soccer Chemistry API",
+            "status": "running",
+            "error": "Data loading issues",
+            "data_loaded": False
+        })
             "message": "Soccer Chemistry API",
             "status": "running",
             "data_loaded": False,
@@ -113,13 +133,22 @@ def debug_info():
         logger.error(f"Debug error: {e}")
         return jsonify({"error": str(e)}), 500
 
-# Health check
+# Health check endpoints
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint."""
     return jsonify({
         "status": "healthy",
         "message": "Soccer Chemistry API is running"
+    })
+
+@app.route('/api/health', methods=['GET'])
+def api_health_check():
+    """API health check endpoint for Railway."""
+    return jsonify({
+        "status": "healthy",
+        "message": "Soccer Chemistry API is running",
+        "version": "1.0.0"
     })
 
 # Data status endpoint
@@ -312,7 +341,15 @@ def get_formations():
     return jsonify({"formations": formations})
 
 if __name__ == '__main__':
-    # Get port from environment variable (Railway sets this)
-    port = int(os.environ.get('PORT', 8000))
-    # Run the app
-    app.run(host='0.0.0.0', port=port, debug=False)
+    try:
+        # Get port from environment variable (Railway sets this)
+        port = int(os.environ.get('PORT', 8000))
+        logger.info(f"Starting Flask app on port {port}")
+        
+        # Run the app
+        app.run(host='0.0.0.0', port=port, debug=False)
+    except Exception as e:
+        logger.error(f"Failed to start Flask app: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
