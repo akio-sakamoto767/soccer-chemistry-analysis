@@ -91,9 +91,22 @@ const OptimizedLineup = ({ result, squadPool, formation, maximize, weight }) => 
             <div>
               <p>• <strong>Chemistry Balance:</strong> {Math.round(weight * 100)}% offensive, {Math.round((1-weight) * 100)}% defensive</p>
               <p>• <strong>Result:</strong> {getChemistryDescription(average_chemistry)} chemistry</p>
-              <p>• <strong>Algorithm:</strong> Greedy optimization</p>
+              <p>• <strong>Algorithm:</strong> Enhanced greedy optimization</p>
             </div>
           </div>
+          
+          {/* Parameter Change Indicator */}
+          {result.optimization_params && (
+            <div className="mt-3 p-3 bg-blue-500/10 rounded-lg border border-blue-400/30">
+              <div className="text-xs text-blue-300">
+                <strong>💡 Current Settings:</strong> This lineup was optimized for{' '}
+                <span className="text-blue-200 font-medium">
+                  {result.optimization_params.chemistry_type}
+                </span>{' '}
+                chemistry. Change the optimization goal or chemistry balance above to see different results.
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -117,26 +130,77 @@ const OptimizedLineup = ({ result, squadPool, formation, maximize, weight }) => 
           <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
             <span className="text-green-400 mr-2">🔥</span>
             Best Partnerships
+            {result.optimization_params && (
+              <span className="ml-2 text-sm text-gray-400">
+                ({result.optimization_params.chemistry_type} focus)
+              </span>
+            )}
           </h3>
+          
+          {/* Optimization Context */}
+          {result.optimization_params && (
+            <div className="mb-4 p-3 glass-panel rounded-lg border border-blue-400/30">
+              <div className="text-xs text-blue-300 space-y-1">
+                <div>
+                  <strong>Goal:</strong> {result.optimization_params.maximize ? 'Maximize' : 'Minimize'} chemistry
+                </div>
+                <div>
+                  <strong>Focus:</strong> {Math.round((1 - result.optimization_params.weight) * 100)}% Defensive, {Math.round(result.optimization_params.weight * 100)}% Offensive
+                </div>
+                <div>
+                  <strong>Expected:</strong> {
+                    result.optimization_params.weight > 0.6 
+                      ? 'FWD-MID partnerships, creative combinations'
+                      : result.optimization_params.weight < 0.4
+                      ? 'DEF-DEF partnerships, defensive stability'
+                      : 'Balanced partnerships across all positions'
+                  }
+                </div>
+              </div>
+            </div>
+          )}
           
           <div className="space-y-3">
             {top_partnerships.slice(0, 5).map((partnership, index) => {
               const player1 = squadPool.find(p => p.value === partnership.player1_id)
               const player2 = squadPool.find(p => p.value === partnership.player2_id)
               
+              // Determine partnership type for better display
+              const role1 = player1?.player?.role_code || '?'
+              const role2 = player2?.player?.role_code || '?'
+              const getPartnershipType = (r1, r2) => {
+                if ((r1 === 'FWD' && r2 === 'MID') || (r1 === 'MID' && r2 === 'FWD')) return 'Attack Partnership'
+                if (r1 === 'DEF' && r2 === 'DEF') return 'Defensive Partnership'
+                if ((r1 === 'DEF' && r2 === 'GK') || (r1 === 'GK' && r2 === 'DEF')) return 'Defensive Core'
+                if (r1 === 'MID' && r2 === 'MID') return 'Midfield Partnership'
+                return 'Mixed Partnership'
+              }
+              const partnershipType = getPartnershipType(role1, role2)
+              
               return (
-                <div key={index} className="flex items-center justify-between p-3 glass-panel rounded-lg border border-green-400/30">
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-white">
-                      {player1?.player?.short_name || `Player ${partnership.player1_id}`} ↔{' '}
-                      {player2?.player?.short_name || `Player ${partnership.player2_id}`}
+                <div key={index} className="p-3 glass-panel rounded-lg border border-green-400/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="text-sm font-medium text-gray-300">
+                          #{index + 1}
+                        </span>
+                        <div className="text-sm font-medium text-white">
+                          {player1?.player?.short_name || `Player ${partnership.player1_id}`}
+                          <span className="text-xs bg-blue-500/20 px-2 py-1 rounded mx-2">{role1}</span>
+                          ↔
+                          <span className="text-xs bg-blue-500/20 px-2 py-1 rounded mx-2">{role2}</span>
+                          {player2?.player?.short_name || `Player ${partnership.player2_id}`}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-300 flex items-center space-x-4">
+                        <span>{player1?.player?.role_name} • {player2?.player?.role_name}</span>
+                        <span className="text-purple-400">{partnershipType}</span>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-300">
-                      {player1?.player?.role_name} • {player2?.player?.role_name}
+                    <div className={`text-sm font-bold ${getChemistryColor(partnership.chemistry)}`}>
+                      {formatChemistryScore(partnership.chemistry)}
                     </div>
-                  </div>
-                  <div className={`text-sm font-bold ${getChemistryColor(partnership.chemistry)}`}>
-                    {formatChemistryScore(partnership.chemistry)}
                   </div>
                 </div>
               )

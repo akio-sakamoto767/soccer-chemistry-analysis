@@ -2,19 +2,77 @@ import React from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { getChemistryColor, formatChemistryScore, getChemistryDescription } from '../../utils/helpers'
 
-const TeamStats = ({ chemistryData, selectedPlayers }) => {
+const TeamStatsFixed = ({ chemistryData, selectedPlayers }) => {
   if (!chemistryData) return null
 
   const { total_chemistry, average_chemistry, pairs, strongest_pairs, weakest_pairs } = chemistryData
 
-  // Create a lookup for player data by ID
+  // Create a lookup for player data by ID with debugging
   const playerLookup = {}
+  console.log('=== DEBUGGING PLAYER NAMES ===')
+  console.log('Selected players:', selectedPlayers)
+  console.log('Chemistry pairs sample:', pairs?.slice(0, 3))
+  
   if (selectedPlayers) {
-    selectedPlayers.forEach(playerOption => {
-      if (playerOption.player) {
-        playerLookup[playerOption.value] = playerOption.player
+    selectedPlayers.forEach((playerOption, index) => {
+      console.log(`Player ${index}:`, playerOption)
+      if (playerOption && playerOption.player) {
+        // Store with multiple key formats to handle type mismatches
+        const playerId = playerOption.value
+        const playerData = playerOption.player
+        
+        playerLookup[playerId] = playerData
+        playerLookup[String(playerId)] = playerData
+        playerLookup[Number(playerId)] = playerData
+        
+        console.log(`Added to lookup - ID: ${playerId} (type: ${typeof playerId}), Name: ${playerData.short_name}`)
       }
     })
+  }
+  
+
+  // Helper function to get player name with detailed debugging
+  const getPlayerName = (playerId) => {
+    console.log(`Looking up player ID: ${playerId} (type: ${typeof playerId})`)
+    
+    // Try different key formats
+    let player = playerLookup[playerId] || 
+                 playerLookup[String(playerId)] || 
+                 playerLookup[Number(playerId)]
+    
+    if (!player) {
+      // If not found, try to find by matching any key
+      const allKeys = Object.keys(playerLookup)
+      console.log(`Player ${playerId} not found. Available keys:`, allKeys)
+      
+      // Try to find a matching key
+      const matchingKey = allKeys.find(key => 
+        key == playerId || 
+        String(key) === String(playerId) || 
+        Number(key) === Number(playerId)
+      )
+      
+      if (matchingKey) {
+        player = playerLookup[matchingKey]
+        console.log(`Found player via matching key ${matchingKey}:`, player?.short_name)
+      }
+    }
+    
+    const name = player?.short_name || `Player ${playerId}`
+    console.log(`Final name for ID ${playerId}:`, name)
+    return name
+  }
+
+  // Helper function to get player role
+  const getPlayerRole = (playerId) => {
+    const player = playerLookup[playerId] || playerLookup[String(playerId)] || playerLookup[Number(playerId)]
+    return player?.role_code || '?'
+  }
+
+  // Helper function to get player team
+  const getPlayerTeam = (playerId) => {
+    const player = playerLookup[playerId] || playerLookup[String(playerId)] || playerLookup[Number(playerId)]
+    return player?.team_name || 'Unknown'
   }
 
   // Prepare data for chemistry distribution chart
@@ -56,6 +114,7 @@ const TeamStats = ({ chemistryData, selectedPlayers }) => {
 
   return (
     <div className="space-y-8">
+
       {/* Overall Statistics */}
       <div className="glass-card">
         <h2 className="text-2xl font-semibold text-white mb-6">
@@ -71,7 +130,7 @@ const TeamStats = ({ chemistryData, selectedPlayers }) => {
               Total Chemistry
             </div>
             <div className="text-xs text-primary-400 mt-1">
-              Sum of all 55 pairs
+              Sum of all {pairs.length} pairs
             </div>
           </div>
 
@@ -109,6 +168,7 @@ const TeamStats = ({ chemistryData, selectedPlayers }) => {
           </div>
         </div>
 
+
       </div>
 
       {/* Chemistry Distribution */}
@@ -140,146 +200,94 @@ const TeamStats = ({ chemistryData, selectedPlayers }) => {
         </div>
       </div>
 
-      {/* Top and Bottom Partnerships */}
+      {/* Partnerships with Names */}
       <div className="grid md:grid-cols-2 gap-8">
+        {/* Strongest Partnerships */}
+        <div className="glass-card">
+          <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+            <span className="text-green-400 mr-2">🔥</span>
+            Strongest Partnerships
+          </h3>
+          
           <div className="space-y-3">
             {strongest_pairs.slice(0, 5).map((pair, index) => {
-              // Get player details from selectedPlayers
-              const player1 = playerLookup[pair.player1_id];
-              const player2 = playerLookup[pair.player2_id];
+              const player1Name = getPlayerName(pair.player1_id)
+              const player2Name = getPlayerName(pair.player2_id)
+              const player1Role = getPlayerRole(pair.player1_id)
+              const player2Role = getPlayerRole(pair.player2_id)
+              const player1Team = getPlayerTeam(pair.player1_id)
+              const player2Team = getPlayerTeam(pair.player2_id)
               
               return (
-                <div key={`${pair.player1_id}-${pair.player2_id}`} className="flex items-center justify-between p-3 glass-panel rounded-lg border border-green-400/30">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium text-gray-300">
-                      #{index + 1}
-                    </span>
-                    <div className="text-sm text-white">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium">
-                          {player1?.short_name || `Player ${pair.player1_id}`}
-                        </span>
-                        <span className="text-xs bg-blue-500/20 px-2 py-1 rounded">
-                          {player1?.role_code || '?'}
-                        </span>
-                        <span className="text-gray-400">↔</span>
-                        <span className="font-medium">
-                          {player2?.short_name || `Player ${pair.player2_id}`}
-                        </span>
-                        <span className="text-xs bg-blue-500/20 px-2 py-1 rounded">
-                          {player2?.role_code || '?'}
-                        </span>
-                      </div>
-                      {(player1?.team_name || player2?.team_name) && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          {player1?.team_name === player2?.team_name 
-                            ? `Both from ${player1?.team_name}` 
-                            : `${player1?.team_name || 'Unknown'} × ${player2?.team_name || 'Unknown'}`
+                <div key={`${pair.player1_id}-${pair.player2_id}`} className="p-3 glass-panel rounded-lg border border-green-400/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-300">
+                        #{index + 1}
+                      </span>
+                      <div className="text-sm text-white">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="font-medium">{player1Name}</span>
+                          <span className="text-xs bg-blue-500/20 px-2 py-1 rounded">{player1Role}</span>
+                          <span className="text-gray-400">↔</span>
+                          <span className="font-medium">{player2Name}</span>
+                          <span className="text-xs bg-blue-500/20 px-2 py-1 rounded">{player2Role}</span>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {player1Team === player2Team 
+                            ? `Both from ${player1Team}` 
+                            : `${player1Team} × ${player2Team}`
                           }
                         </div>
-                      )}
+                      </div>
+                    </div>
+                    <div className={`text-sm font-bold ${getChemistryColor(pair.chemistry)}`}>
+                      {formatChemistryScore(pair.chemistry)}
                     </div>
                   </div>
-                  <div className={`text-sm font-bold ${getChemistryColor(pair.chemistry)}`}>
-                    {formatChemistryScore(pair.chemistry)}
-                  </div>
                 </div>
-              );
+              )
             })}
-          </div>        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className={`text-sm font-bold ${getChemistryColor(pair.chemistry)}`}>
-                    {formatChemistryScore(pair.chemistry)}
-                  </div>
-                </div>
-              );
-            })}
+          </div>
+        </div>
+
+        {/* Weakest Partnerships */}
+        <div className="glass-card">
+          <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+            <span className="text-red-400 mr-2">⚠️</span>
+            Areas for Improvement
+          </h3>
+          
           <div className="space-y-3">
             {weakest_pairs.slice(0, 5).map((pair, index) => {
-              // Get player details from selectedPlayers
-              const player1 = playerLookup[pair.player1_id];
-              const player2 = playerLookup[pair.player2_id];
+              const player1Name = getPlayerName(pair.player1_id)
+              const player2Name = getPlayerName(pair.player2_id)
+              const player1Role = getPlayerRole(pair.player1_id)
+              const player2Role = getPlayerRole(pair.player2_id)
               
               return (
-                <div key={`${pair.player1_id}-${pair.player2_id}`} className="flex items-center justify-between p-3 glass-panel rounded-lg border border-red-400/30">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium text-gray-300">
-                      #{index + 1}
-                    </span>
-                    <div className="text-sm text-white">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium">
-                          {player1?.short_name || `Player ${pair.player1_id}`}
-                        </span>
-                        <span className="text-xs bg-blue-500/20 px-2 py-1 rounded">
-                          {player1?.role_code || '?'}
-                        </span>
-                        <span className="text-gray-400">↔</span>
-                        <span className="font-medium">
-                          {player2?.short_name || `Player ${pair.player2_id}`}
-                        </span>
-                        <span className="text-xs bg-blue-500/20 px-2 py-1 rounded">
-                          {player2?.role_code || '?'}
-                        </span>
-                      </div>
-                      {(player1?.team_name || player2?.team_name) && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          {player1?.team_name === player2?.team_name 
-                            ? `Both from ${player1?.team_name}` 
-                            : `${player1?.team_name || 'Unknown'} × ${player2?.team_name || 'Unknown'}`
-                          }
+                <div key={`${pair.player1_id}-${pair.player2_id}`} className="p-3 glass-panel rounded-lg border border-red-400/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-300">
+                        #{index + 1}
+                      </span>
+                      <div className="text-sm text-white">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{player1Name}</span>
+                          <span className="text-xs bg-blue-500/20 px-2 py-1 rounded">{player1Role}</span>
+                          <span className="text-gray-400">↔</span>
+                          <span className="font-medium">{player2Name}</span>
+                          <span className="text-xs bg-blue-500/20 px-2 py-1 rounded">{player2Role}</span>
                         </div>
-                      )}
+                      </div>
+                    </div>
+                    <div className={`text-sm font-bold ${getChemistryColor(pair.chemistry)}`}>
+                      {formatChemistryScore(pair.chemistry)}
                     </div>
                   </div>
-                  <div className={`text-sm font-bold ${getChemistryColor(pair.chemistry)}`}>
-                    {formatChemistryScore(pair.chemistry)}
-                  </div>
                 </div>
-              );
-            })}
-          </div>nst player1 = chemistryData.players?.find(p => p.id === pair.player1_id);
-              const player2 = chemistryData.players?.find(p => p.id === pair.player2_id);
-              
-              return (
-                <div key={`${pair.player1_id}-${pair.player2_id}`} className="flex items-center justify-between p-3 glass-panel rounded-lg border border-red-400/30">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium text-gray-300">
-                      #{index + 1}
-                    </span>
-                    <div className="text-sm text-white">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium">
-                          {player1?.short_name || `Player ${pair.player1_id}`}
-                        </span>
-                        <span className="text-xs bg-blue-500/20 px-2 py-1 rounded">
-                          {player1?.role_code || '?'}
-                        </span>
-                        <span className="text-gray-400">↔</span>
-                        <span className="font-medium">
-                          {player2?.short_name || `Player ${pair.player2_id}`}
-                        </span>
-                        <span className="text-xs bg-blue-500/20 px-2 py-1 rounded">
-                          {player2?.role_code || '?'}
-                        </span>
-                      </div>
-                      {(player1?.team_name || player2?.team_name) && (
-                        <div className="text-xs text-gray-400 mt-1">
-                          {player1?.team_name === player2?.team_name 
-                            ? `Both from ${player1?.team_name}` 
-                            : `${player1?.team_name || 'Unknown'} × ${player2?.team_name || 'Unknown'}`
-                          }
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className={`text-sm font-bold ${getChemistryColor(pair.chemistry)}`}>
-                    {formatChemistryScore(pair.chemistry)}
-                  </div>
-                </div>
-              );
+              )
             })}
           </div>
         </div>
@@ -329,4 +337,4 @@ const TeamStats = ({ chemistryData, selectedPlayers }) => {
   )
 }
 
-export default TeamStats
+export default TeamStatsFixed

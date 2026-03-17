@@ -98,7 +98,8 @@ async def optimize_squad(request: OptimizeSquadRequest):
             formation_positions=result['formation_positions'],
             top_partnerships=top_partnerships,
             weakest_link=weakest_link,
-            players=player_basics
+            players=player_basics,
+            optimization_params=result.get('optimization_params')
         )
         
     except HTTPException:

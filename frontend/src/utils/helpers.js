@@ -10,12 +10,20 @@ export const getChemistryColor = (score) => {
 }
 
 /**
- * Get chemistry color for visualizations
+ * Get chemistry color for visualizations with better differentiation
  */
 export const getChemistryColorHex = (score) => {
-  if (score >= 75) return '#16a34a' // green-600
-  if (score >= 50) return '#ca8a04' // yellow-600
-  return '#dc2626' // red-600
+  // Ensure score is a number
+  const numScore = parseFloat(score) || 0
+  
+  // More granular color mapping for better visual differentiation
+  if (numScore >= 80) return '#10b981' // emerald-500 - Excellent
+  if (numScore >= 70) return '#22c55e' // green-500 - Very Good  
+  if (numScore >= 60) return '#84cc16' // lime-500 - Good
+  if (numScore >= 50) return '#eab308' // yellow-500 - Average
+  if (numScore >= 40) return '#f59e0b' // amber-500 - Below Average
+  if (numScore >= 30) return '#f97316' // orange-500 - Poor
+  return '#ef4444' // red-500 - Very Poor
 }
 
 /**
@@ -78,11 +86,15 @@ export const debounce = (func, wait) => {
 }
 
 /**
- * Calculate line thickness for chemistry visualization
+ * Calculate line thickness for chemistry visualization with better scaling
  */
-export const getLineThickness = (score, minThickness = 1, maxThickness = 5) => {
-  const normalized = Math.max(0, Math.min(100, score)) / 100
-  return minThickness + (normalized * (maxThickness - minThickness))
+export const getLineThickness = (score, minThickness = 1, maxThickness = 6) => {
+  const numScore = parseFloat(score) || 0
+  const normalized = Math.max(0, Math.min(100, numScore)) / 100
+  
+  // Use exponential scaling for better visual differentiation
+  const exponential = Math.pow(normalized, 0.7)
+  return minThickness + (exponential * (maxThickness - minThickness))
 }
 
 /**
@@ -90,71 +102,72 @@ export const getLineThickness = (score, minThickness = 1, maxThickness = 5) => {
  */
 export const getFormationCoordinates = (formation) => {
   // Formation mapping (x, y coordinates on 100x100 grid)
-  // Based on standard soccer formations with proper positioning
+  // X-axis: Defense (left) to Attack (right)
+  // Y-axis: Left side to Right side of field
   const formations = {
     '4-3-3': [
-      { x: 50, y: 10 }, // GK
-      { x: 15, y: 25 }, // LB
-      { x: 35, y: 25 }, // CB
-      { x: 65, y: 25 }, // CB
-      { x: 85, y: 25 }, // RB
-      { x: 25, y: 50 }, // LCM
-      { x: 50, y: 50 }, // CM
-      { x: 75, y: 50 }, // RCM
-      { x: 20, y: 80 }, // LW
-      { x: 50, y: 80 }, // ST
-      { x: 80, y: 80 }, // RW
+      { x: 10, y: 50 }, // GK (left side, center)
+      { x: 25, y: 15 }, // LB (defense, left)
+      { x: 25, y: 35 }, // CB (defense, center-left)
+      { x: 25, y: 65 }, // CB (defense, center-right)
+      { x: 25, y: 85 }, // RB (defense, right)
+      { x: 50, y: 25 }, // LCM (midfield, left)
+      { x: 50, y: 50 }, // CM (midfield, center)
+      { x: 50, y: 75 }, // RCM (midfield, right)
+      { x: 80, y: 20 }, // LW (attack, left)
+      { x: 80, y: 50 }, // ST (attack, center)
+      { x: 80, y: 80 }, // RW (attack, right)
     ],
     '4-4-2': [
-      { x: 50, y: 10 }, // GK
-      { x: 15, y: 25 }, // LB
-      { x: 35, y: 25 }, // CB
-      { x: 65, y: 25 }, // CB
-      { x: 85, y: 25 }, // RB
-      { x: 15, y: 50 }, // LM
-      { x: 35, y: 50 }, // LCM
-      { x: 65, y: 50 }, // RCM
-      { x: 85, y: 50 }, // RM
-      { x: 40, y: 80 }, // LST
-      { x: 60, y: 80 }, // RST
+      { x: 10, y: 50 }, // GK
+      { x: 25, y: 15 }, // LB
+      { x: 25, y: 35 }, // CB
+      { x: 25, y: 65 }, // CB
+      { x: 25, y: 85 }, // RB
+      { x: 50, y: 15 }, // LM
+      { x: 50, y: 35 }, // LCM
+      { x: 50, y: 65 }, // RCM
+      { x: 50, y: 85 }, // RM
+      { x: 80, y: 40 }, // LST
+      { x: 80, y: 60 }, // RST
     ],
     '4-2-3-1': [
-      { x: 50, y: 10 }, // GK
-      { x: 15, y: 25 }, // LB
-      { x: 35, y: 25 }, // CB
-      { x: 65, y: 25 }, // CB
-      { x: 85, y: 25 }, // RB
-      { x: 35, y: 40 }, // LCDM
-      { x: 65, y: 40 }, // RCDM
-      { x: 20, y: 60 }, // LAM
-      { x: 50, y: 60 }, // CAM
-      { x: 80, y: 60 }, // RAM
-      { x: 50, y: 80 }, // ST
+      { x: 10, y: 50 }, // GK
+      { x: 25, y: 15 }, // LB
+      { x: 25, y: 35 }, // CB
+      { x: 25, y: 65 }, // CB
+      { x: 25, y: 85 }, // RB
+      { x: 40, y: 35 }, // LCDM
+      { x: 40, y: 65 }, // RCDM
+      { x: 60, y: 20 }, // LAM
+      { x: 60, y: 50 }, // CAM
+      { x: 60, y: 80 }, // RAM
+      { x: 80, y: 50 }, // ST
     ],
     '3-5-2': [
-      { x: 50, y: 10 }, // GK
+      { x: 10, y: 50 }, // GK
       { x: 25, y: 25 }, // LCB
-      { x: 50, y: 25 }, // CB
-      { x: 75, y: 25 }, // RCB
-      { x: 10, y: 45 }, // LWB
-      { x: 30, y: 50 }, // LCM
+      { x: 25, y: 50 }, // CB
+      { x: 25, y: 75 }, // RCB
+      { x: 45, y: 10 }, // LWB
+      { x: 50, y: 30 }, // LCM
       { x: 50, y: 50 }, // CM
-      { x: 70, y: 50 }, // RCM
-      { x: 90, y: 45 }, // RWB
-      { x: 40, y: 80 }, // LST
-      { x: 60, y: 80 }, // RST
+      { x: 50, y: 70 }, // RCM
+      { x: 45, y: 90 }, // RWB
+      { x: 80, y: 40 }, // LST
+      { x: 80, y: 60 }, // RST
     ],
     '3-4-3': [
-      { x: 50, y: 10 }, // GK
+      { x: 10, y: 50 }, // GK
       { x: 25, y: 25 }, // LCB
-      { x: 50, y: 25 }, // CB
-      { x: 75, y: 25 }, // RCB
-      { x: 15, y: 50 }, // LM
-      { x: 35, y: 50 }, // LCM
-      { x: 65, y: 50 }, // RCM
-      { x: 85, y: 50 }, // RM
-      { x: 20, y: 80 }, // LW
-      { x: 50, y: 80 }, // ST
+      { x: 25, y: 50 }, // CB
+      { x: 25, y: 75 }, // RCB
+      { x: 50, y: 15 }, // LM
+      { x: 50, y: 35 }, // LCM
+      { x: 50, y: 65 }, // RCM
+      { x: 50, y: 85 }, // RM
+      { x: 80, y: 20 }, // LW
+      { x: 80, y: 50 }, // ST
       { x: 80, y: 80 }, // RW
     ],
   }

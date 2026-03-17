@@ -100,6 +100,7 @@ class TeamChemistryResponse(BaseModel):
     weakest_pairs: List[PlayerPairChemistry]
     formation: str
     formation_positions: Dict[str, int]
+    chemistry_type: str = "average"  # Add chemistry type to response
 
 
 # Optimizer models
@@ -121,6 +122,7 @@ class OptimizeSquadResponse(BaseModel):
     top_partnerships: List[PlayerPairChemistry]
     weakest_link: Optional[PlayerPairChemistry] = None
     players: List[PlayerBasic]
+    optimization_params: Optional[Dict[str, Any]] = None  # Add optimization parameters
 
 
 # Formation models

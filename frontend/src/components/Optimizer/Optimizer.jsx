@@ -13,6 +13,15 @@ const Optimizer = () => {
   const [optimizedResult, setOptimizedResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [lastOptimizationParams, setLastOptimizationParams] = useState(null)
+
+  // Check if parameters have changed since last optimization
+  const parametersChanged = optimizedResult && lastOptimizationParams && (
+    formation !== lastOptimizationParams.formation ||
+    maximize !== lastOptimizationParams.maximize ||
+    Math.abs(weight - lastOptimizationParams.weight) > 0.05 ||
+    squadPool.length !== lastOptimizationParams.squadPoolSize
+  )
 
   const handleOptimize = async () => {
     if (squadPool.length < 11) {
@@ -25,6 +34,14 @@ const Optimizer = () => {
       return
     }
 
+    // Log optimization parameters for debugging
+    console.log('=== SQUAD OPTIMIZATION PARAMETERS ===')
+    console.log('Formation:', formation)
+    console.log('Maximize:', maximize)
+    console.log('Weight:', weight)
+    console.log('Chemistry Type:', weight > 0.6 ? 'Offensive' : weight < 0.4 ? 'Defensive' : 'Balanced')
+    console.log('Squad Pool Size:', squadPool.length)
+
     setLoading(true)
     setError(null)
 
@@ -36,6 +53,21 @@ const Optimizer = () => {
         maximize,
         weight
       )
+      
+      console.log('=== OPTIMIZATION RESULT ===')
+      console.log('Total Chemistry:', response.data.total_chemistry)
+      console.log('Average Chemistry:', response.data.average_chemistry)
+      console.log('Top Partnership Score:', response.data.top_partnerships[0]?.chemistry)
+      console.log('Optimization Params:', response.data.optimization_params)
+      
+      // Store current parameters for change detection
+      setLastOptimizationParams({
+        formation,
+        maximize,
+        weight,
+        squadPoolSize: squadPool.length
+      })
+      
       setOptimizedResult(response.data)
     } catch (err) {
       console.error('Error optimizing squad:', err)
@@ -104,7 +136,9 @@ const Optimizer = () => {
           <button
             onClick={handleOptimize}
             disabled={squadPool.length < 11 || loading}
-            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-lg px-10 py-4"
+            className={`btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-lg px-10 py-4 ${
+              parametersChanged ? 'animate-pulse bg-orange-500 hover:bg-orange-600' : ''
+            }`}
           >
             {loading ? (
               <span className="flex items-center justify-center">
@@ -114,7 +148,7 @@ const Optimizer = () => {
             ) : (
               <span className="flex items-center justify-center">
                 <LightningIcon className="w-6 h-6 mr-3" />
-                {maximize ? 'Maximize' : 'Minimize'} Chemistry
+                {parametersChanged ? 'Re-optimize' : maximize ? 'Maximize' : 'Minimize'} Chemistry
               </span>
             )}
           </button>
@@ -126,6 +160,25 @@ const Optimizer = () => {
             Reset Configuration
           </button>
         </div>
+
+        {/* Parameter Change Warning */}
+        {parametersChanged && (
+          <div className="mt-4 p-4 bg-orange-500/20 backdrop-blur-md border-2 border-orange-400/50 rounded-2xl">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <LightningIcon className="h-6 w-6 text-orange-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-semibold text-orange-300">
+                  Parameters Changed
+                </p>
+                <p className="text-xs text-orange-200 mt-1">
+                  Your optimization settings have changed. Click "Re-optimize Chemistry" to see updated results and partnerships.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Squad Pool Status */}
         <div className="mt-6 flex items-center justify-between text-lg p-4 bg-slate-800/50 rounded-xl border border-slate-600/30">

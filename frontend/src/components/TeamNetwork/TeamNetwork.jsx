@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import PlayerSelect from '../common/PlayerSelect'
 import SoccerPitch from './SoccerPitch'
-import TeamStats from './TeamStats'
+import TeamStatsFixed from './TeamStatsFixed'
 import { apiClient } from '../../api/client'
 import { LoadingIcon, AlertIcon, NetworkIcon, CheckIcon } from '../common/Icons'
 
@@ -56,6 +56,8 @@ const TeamNetwork = () => {
   // Auto-update visualization when formation, viewMode, or players change
   useEffect(() => {
     if (selectedPlayers.length === 11 && chemistryData) {
+      // Debug: Log the chemistry type change
+      console.log('Chemistry type changed to:', viewMode)
       // Automatically recalculate when formation or chemistry type changes
       calculateChemistry(selectedPlayers, formation, viewMode)
     }
@@ -238,16 +240,16 @@ const TeamNetwork = () => {
               </h2>
               <div className="flex flex-wrap items-center gap-6 text-base">
                 <div className="flex items-center space-x-3">
-                  <div className="w-6 h-2 bg-gradient-to-r from-green-400 to-green-600 rounded-full"></div>
-                  <span className="font-medium text-white">Strong (75+)</span>
+                  <div className="w-6 h-2 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full"></div>
+                  <span className="font-medium text-white">Excellent (80+)</span>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <div className="w-6 h-2 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full"></div>
-                  <span className="font-medium text-white">Good (50-74)</span>
+                  <div className="w-6 h-2 bg-gradient-to-r from-lime-400 to-yellow-500 rounded-full"></div>
+                  <span className="font-medium text-white">Good (60-79)</span>
                 </div>
                 <div className="flex items-center space-x-3">
-                  <div className="w-6 h-2 bg-gradient-to-r from-red-400 to-red-600 rounded-full"></div>
-                  <span className="font-medium text-white">Weak (0-49)</span>
+                  <div className="w-6 h-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-full"></div>
+                  <span className="font-medium text-white">Poor (30-59)</span>
                 </div>
               </div>
             </div>
@@ -261,7 +263,10 @@ const TeamNetwork = () => {
           </div>
 
           {/* Team Statistics */}
-          <TeamStats chemistryData={chemistryData} />
+          <TeamStatsFixed 
+            chemistryData={chemistryData} 
+            selectedPlayers={selectedPlayers}
+          />
         </div>
       )}
     </div>

@@ -166,7 +166,8 @@ async def calculate_team_chemistry(request: TeamChemistryRequest):
             strongest_pairs=strongest_pairs,
             weakest_pairs=weakest_pairs,
             formation=request.formation,
-            formation_positions=formation_positions
+            formation_positions=formation_positions,
+            chemistry_type=request.chemistry_type  # Add chemistry type to response
         )
         
     except HTTPException:
