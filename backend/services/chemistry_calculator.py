@@ -383,6 +383,10 @@ class ChemistryCalculator:
         High complementarity when one is high and other is low.
         """
         
+        # Handle None values
+        if value1 is None or value2 is None:
+            return 0.5  # Neutral score for missing data
+        
         is_high_1 = value1 > high_threshold
         is_low_1 = value1 < low_threshold
         is_high_2 = value2 > high_threshold
@@ -407,8 +411,8 @@ class ChemistryCalculator:
         return 0.7  # Default
     
     def _safe_divide(self, numerator: float, denominator: float) -> float:
-        """Safe division avoiding divide by zero."""
-        if denominator == 0:
+        """Safe division avoiding divide by zero and None values."""
+        if numerator is None or denominator is None or denominator == 0:
             return 0.0
         return numerator / denominator
     

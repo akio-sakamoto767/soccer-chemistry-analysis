@@ -1,17 +1,13 @@
 """
 Data loader service for loading and caching CSV data.
 """
-try:
-    import pandas as pd
-    PANDAS_AVAILABLE = True
-except ImportError:
-    PANDAS_AVAILABLE = False
-    print("Warning: pandas not available. Using CSV module instead.")
-    import csv
-
+import csv
 from pathlib import Path
 from typing import Dict, List, Optional
 import logging
+
+# Disable pandas to avoid NaN issues
+PANDAS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +24,8 @@ class DataLoader:
         return cls._instance
     
     def __init__(self):
-        if not self._initialized:
+        # Always allow reinitialization during development
+        if not self._initialized or True:  # Force reinit for development
             self.data_path: Optional[Path] = None
             self.players_data: List[Dict] = []
             self.teams_data: List[Dict] = []
@@ -51,21 +48,23 @@ class DataLoader:
             DataLoader._initialized = True
     
     def _read_csv_file(self, file_path: Path) -> List[Dict]:
-        """Read CSV file using either pandas or csv module."""
-        if PANDAS_AVAILABLE:
-            try:
-                df = pd.read_csv(file_path)
-                return df.to_dict('records')
-            except Exception as e:
-                logger.warning(f"Pandas failed to read {file_path}, falling back to csv module: {e}")
-        
-        # Fallback to csv module
+        """Read CSV file using Python's built-in csv module."""
         data = []
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    data.append(row)
+                    # Convert empty strings to None for cleaner data
+                    cleaned_row = {}
+                    for key, value in row.items():
+                        if value == '' or value is None:
+                            cleaned_row[key] = None
+                        else:
+                            # Strip whitespace from string values
+                            cleaned_row[key] = value.strip() if isinstance(value, str) else value
+                    data.append(cleaned_row)
+            
+            logger.info(f"Successfully read {len(data)} rows from {file_path}")
         except Exception as e:
             logger.error(f"Failed to read {file_path}: {e}")
         
@@ -112,12 +111,33 @@ class DataLoader:
         """Merge player data with stats and attributes."""
         logger.info("Enriching player data...")
         
-        # Convert string IDs to integers for matching
+        # Convert string values to appropriate types
         def safe_int(value):
+            """Convert value to integer, handling various input types safely."""
+            if value is None or value == '':
+                return None
             try:
-                return int(float(value)) if value and str(value).strip() else None
+                # Handle string representations of numbers
+                if isinstance(value, str):
+                    value = value.strip()
+                    if value == '' or value.lower() in ('null', 'none', 'nan'):
+                        return None
+                return int(float(value))
             except (ValueError, TypeError):
                 return None
+        
+        def safe_float(value):
+            """Convert value to float, handling various input types safely."""
+            if value is None or value == '':
+                return 0.0
+            try:
+                if isinstance(value, str):
+                    value = value.strip()
+                    if value == '' or value.lower() in ('null', 'none', 'nan'):
+                        return 0.0
+                return float(value)
+            except (ValueError, TypeError):
+                return 0.0
         
         # Create lookup dictionaries for faster merging
         contracts_dict = {safe_int(row.get('player_id')): row for row in self.player_contracts_data if row.get('player_id')}
@@ -141,6 +161,12 @@ class DataLoader:
                 continue
                 
             enriched_player = player.copy()
+            
+            # Convert numeric fields from strings to appropriate types
+            numeric_fields = ['age_years', 'height_cm', 'weight_kg', 'citizenship_area_id', 'second_citizenship_area_id']
+            for field in numeric_fields:
+                if field in enriched_player:
+                    enriched_player[field] = safe_float(enriched_player[field]) if field == 'age_years' else safe_int(enriched_player[field])
             
             # Add contract info
             if player_id in contracts_dict:
@@ -170,8 +196,8 @@ class DataLoader:
                     'matches': safe_int(stats.get('matches')),
                     'goals': safe_int(stats.get('goals')),
                     'assists': safe_int(stats.get('assists')),
-                    'xg_shot': float(stats.get('xg_shot', 0)) if stats.get('xg_shot') else 0,
-                    'xg_assist': float(stats.get('xg_assist', 0)) if stats.get('xg_assist') else 0,
+                    'xg_shot': safe_float(stats.get('xg_shot')),
+                    'xg_assist': safe_float(stats.get('xg_assist')),
                     'shots': safe_int(stats.get('shots')),
                     'passes': safe_int(stats.get('passes')),
                     'successful_passes': safe_int(stats.get('successful_passes')),
@@ -241,7 +267,7 @@ class DataLoader:
         players = self.players_enriched.copy()
         
         # Filter by minimum minutes
-        players = [p for p in players if p.get('minutes_played', 0) >= min_minutes]
+        players = [p for p in players if (p.get('minutes_played') or 0) >= min_minutes]
         
         # Filter by search term
         if search:

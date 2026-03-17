@@ -9,6 +9,8 @@ const api = axios.create({
   },
 })
 
+console.log('API Base URL:', import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api')
+
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
@@ -24,6 +26,14 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
+    // Ensure JSON responses are parsed
+    if (typeof response.data === 'string' && response.headers['content-type']?.includes('application/json')) {
+      try {
+        response.data = JSON.parse(response.data)
+      } catch (error) {
+        console.error('Failed to parse JSON response:', error)
+      }
+    }
     return response
   },
   (error) => {

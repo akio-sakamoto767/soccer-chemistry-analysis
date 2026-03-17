@@ -18,6 +18,11 @@ const AdvancedPlayerSelect = ({
   const [searchTerm, setSearchTerm] = useState('')
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   
+  // Debug options state
+  useEffect(() => {
+    console.log('Options state changed:', options.length, options.slice(0, 2))
+  }, [options])
+  
   // Filter states
   const [filters, setFilters] = useState({
     position: '',
@@ -47,17 +52,18 @@ const AdvancedPlayerSelect = ({
   ]
   // Debounced search function with filters
   const debouncedSearch = debounce(async (term, currentFilters = filters) => {
-    if (term.length < 2 && !Object.values(currentFilters).some(v => v)) {
-      setOptions([])
-      return
-    }
-
+    console.log('Debounced search called with term:', term, 'filters:', currentFilters)
+    
     setLoading(true)
     try {
       const searchParams = {
-        search: term,
         limit: 50,
         min_minutes: currentFilters.minMinutes || 0
+      }
+      
+      // Add search term if provided (allow single character searches)
+      if (term && term.length >= 1) {
+        searchParams.search = term
       }
 
       // Add filters to search params
@@ -65,9 +71,42 @@ const AdvancedPlayerSelect = ({
         searchParams.role_code = currentFilters.position
       }
 
+      console.log('Making search API call with params:', searchParams)
       const response = await apiClient.getPlayers(searchParams)
+      
+      console.log('Search API Response:', response)
+      console.log('Search Response data type:', typeof response.data)
+      console.log('Search Response data:', response.data)
+      
+      if (!response.data) {
+        console.error('Invalid search response structure:', response)
+        setOptions([])
+        return
+      }
+      
+      // Parse JSON if response.data is a string
+      let responseData = response.data
+      if (typeof response.data === 'string') {
+        console.log('Search response data is string, parsing JSON...')
+        try {
+          responseData = JSON.parse(response.data)
+          console.log('Parsed search response data:', responseData)
+        } catch (parseError) {
+          console.error('Failed to parse search JSON response:', parseError)
+          setOptions([])
+          return
+        }
+      }
 
-      let playerOptions = response.data.players
+      if (!responseData.players) {
+        console.error('No players in search response data:', responseData)
+        setOptions([])
+        return
+      }
+
+      console.log('Search players array length:', responseData.players.length)
+
+      let playerOptions = responseData.players
         .filter(player => !excludeIds.includes(player.id))
 
       // Apply client-side filters
@@ -98,15 +137,25 @@ const AdvancedPlayerSelect = ({
         })
       }
 
-      const formattedOptions = playerOptions.map(player => ({
-        value: player.id,
-        label: formatPlayerName(player),
-        player: player
-      }))
+      const formattedOptions = playerOptions.map(player => {
+        const formattedName = formatPlayerName(player)
+        return {
+          value: player.id,
+          label: formattedName,
+          player: player
+        }
+      })
 
+      console.log('Setting search options:', formattedOptions.length)
       setOptions(formattedOptions)
     } catch (error) {
       console.error('Error searching players:', error)
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        status: error.response?.status,
+        data: error.response?.data
+      })
       setOptions([])
     } finally {
       setLoading(false)
@@ -114,32 +163,93 @@ const AdvancedPlayerSelect = ({
   }, 300)
   // Load initial players
   useEffect(() => {
+    console.log('useEffect triggered for initial load')
     const loadInitialPlayers = async () => {
+      console.log('Loading initial players...')
       setLoading(true)
       try {
+        console.log('Starting API call...')
+        console.log('API Base URL:', import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api')
+        
         const response = await apiClient.getPlayers({
           limit: 20,
           min_minutes: filters.minMinutes || 0
         })
 
-        const playerOptions = response.data.players
+        console.log('Initial players response:', response)
+        console.log('Response status:', response.status)
+        console.log('Response headers:', response.headers)
+        console.log('Initial players data type:', typeof response.data)
+        console.log('Initial players data:', response.data)
+        
+        if (!response || !response.data) {
+          console.error('No response or response.data:', response)
+          setOptions([])
+          return
+        }
+        
+        // Parse JSON if response.data is a string
+        let responseData = response.data
+        if (typeof response.data === 'string') {
+          console.log('Response data is string, parsing JSON...')
+          try {
+            responseData = JSON.parse(response.data)
+            console.log('Parsed response data:', responseData)
+          } catch (parseError) {
+            console.error('Failed to parse JSON response:', parseError)
+            setOptions([])
+            return
+          }
+        }
+        
+        if (!responseData.players) {
+          console.error('No players in response data:', responseData)
+          setOptions([])
+          return
+        }
+        
+        console.log('Players array length:', responseData.players.length)
+
+        const playerOptions = responseData.players
           .filter(player => !excludeIds.includes(player.id))
-          .map(player => ({
-            value: player.id,
-            label: formatPlayerName(player),
-            player: player
-          }))
+          .map(player => {
+            const formattedName = formatPlayerName(player)
+            return {
+              value: player.id,
+              label: formattedName,
+              player: player
+            }
+          })
 
         setOptions(playerOptions)
       } catch (error) {
         console.error('Error loading initial players:', error)
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response,
+          status: error.response?.status,
+          data: error.response?.data,
+          stack: error.stack
+        })
+        setOptions([])
       } finally {
+        console.log('Finished loading, setting loading to false')
         setLoading(false)
       }
     }
 
     loadInitialPlayers()
-  }, [excludeIds, filters.minMinutes])
+  }, []) // Remove dependencies to ensure it only runs once on mount
+
+  // Handle filter changes
+  useEffect(() => {
+    if (searchTerm) {
+      debouncedSearch(searchTerm, filters)
+    } else {
+      // Reload initial players with new filters
+      debouncedSearch('', filters)
+    }
+  }, [filters.minMinutes, filters.position]) // Only watch specific filter changes
 
   // Handle filter changes
   const handleFilterChange = (filterName, value) => {
@@ -149,8 +259,16 @@ const AdvancedPlayerSelect = ({
   }
 
   const handleInputChange = (inputValue) => {
+    console.log('Input changed to:', inputValue)
     setSearchTerm(inputValue)
-    debouncedSearch(inputValue, filters)
+    
+    // If input is cleared, load initial players
+    if (!inputValue || inputValue.length === 0) {
+      // Load initial players without search term
+      debouncedSearch('', filters)
+    } else {
+      debouncedSearch(inputValue, filters)
+    }
   }
 
   const handleChange = (selectedOption) => {
@@ -176,80 +294,40 @@ const AdvancedPlayerSelect = ({
     control: (provided, state) => ({
       ...provided,
       minHeight: '42px',
-      borderColor: state.isFocused ? '#475569' : '#374151',
-      backgroundColor: '#1e293b',
-      boxShadow: state.isFocused ? '0 0 0 1px #475569' : 'none',
-      '&:hover': {
-        borderColor: '#475569'
-      }
+      borderColor: state.isFocused ? '#3b82f6' : '#d1d5db',
+      backgroundColor: 'white',
+      boxShadow: state.isFocused ? '0 0 0 1px #3b82f6' : 'none',
     }),
     option: (provided, state) => ({
       ...provided,
       backgroundColor: state.isSelected 
-        ? '#475569' 
+        ? '#3b82f6' 
         : state.isFocused 
-        ? '#334155' 
-        : '#1e293b',
-      color: 'white',
-      '&:hover': {
-        backgroundColor: state.isSelected ? '#475569' : '#334155'
-      }
-    }),
-    singleValue: (provided) => ({
-      ...provided,
-      color: 'white',
-    }),
-    input: (provided) => ({
-      ...provided,
-      color: 'white',
-    }),
-    placeholder: (provided) => ({
-      ...provided,
-      color: '#94a3b8',
+        ? '#e5e7eb' 
+        : 'white',
+      color: state.isSelected ? 'white' : 'black',
     }),
     menu: (provided) => ({
       ...provided,
-      backgroundColor: '#1e293b',
-      border: '1px solid #374151',
-    }),
-    multiValue: (provided) => ({
-      ...provided,
-      backgroundColor: '#374151',
-    }),
-    multiValueLabel: (provided) => ({
-      ...provided,
-      color: 'white',
-    }),
-    multiValueRemove: (provided) => ({
-      ...provided,
-      color: 'white',
-      '&:hover': {
-        backgroundColor: '#475569',
-        color: 'white',
-      },
+      backgroundColor: 'white',
+      border: '1px solid #d1d5db',
+      zIndex: 9999,
     }),
   }
-  const formatOptionLabel = ({ label, player }) => (
-    <div className="flex items-center space-x-3">
-      <div className="flex-shrink-0">
-        <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
-          <span className="text-xs font-medium text-white">
-            {player.role_code || '?'}
-          </span>
+  const formatOptionLabel = ({ label, player }) => {
+    if (!player) {
+      return <div>{label}</div>
+    }
+    
+    return (
+      <div>
+        <div>{player.short_name || player.first_name || 'Unknown'}</div>
+        <div style={{ fontSize: '12px', color: '#666' }}>
+          {player.team_name || 'No Team'} • {player.role_name || 'Unknown'}
         </div>
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-white truncate">
-          {player.short_name}
-        </div>
-        <div className="text-xs text-slate-400 truncate">
-          {player.team_name} • {player.role_name}
-          {player.overall_rating && ` • ${player.overall_rating}`}
-          {player.age_years && ` • ${Math.floor(player.age_years)}y`}
-        </div>
-      </div>
-    </div>
-  )
+    )
+  }
 
   const activeFiltersCount = Object.values(filters).filter(v => v && v !== 0).length
 
@@ -374,19 +452,21 @@ const AdvancedPlayerSelect = ({
         isLoading={loading}
         isMulti={isMulti}
         placeholder={placeholder}
-        noOptionsMessage={({ inputValue }) => 
-          inputValue.length < 2 && !Object.values(filters).some(v => v)
-            ? "Type at least 2 characters to search or use filters..." 
-            : "No players found matching criteria"
-        }
+        noOptionsMessage={({ inputValue }) => {
+          if (loading) {
+            return "Loading players..."
+          }
+          if (!inputValue || inputValue.length === 0) {
+            return "No players available"
+          }
+          return "No players found matching criteria"
+        }}
         formatOptionLabel={formatOptionLabel}
         styles={customStyles}
         className="react-select-container"
         classNamePrefix="react-select"
         isClearable
         isSearchable
-        menuPortalTarget={document.body}
-        menuPosition="fixed"
       />
       
       {/* Selection Counter */}
