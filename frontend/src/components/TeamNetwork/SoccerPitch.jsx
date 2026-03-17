@@ -2,7 +2,7 @@ import React from 'react'
 import { getFormationCoordinates, getChemistryColorHex, getLineThickness } from '../../utils/helpers'
 
 const SoccerPitch = ({ players, formation, chemistryPairs, viewMode }) => {
-  if (!players || players.length !== 11 || !chemistryPairs) {
+  if (!players || players.length !== 11) {
     return (
       <div className="w-full h-96 glass-panel rounded-lg flex items-center justify-center">
         <p className="text-gray-300">Select 11 players to visualize team chemistry</p>
@@ -15,17 +15,9 @@ const SoccerPitch = ({ players, formation, chemistryPairs, viewMode }) => {
   const pitchHeight = 600
   const playerRadius = 25
 
-  // Create a map of player pairs to chemistry scores
-  const chemistryMap = {}
-  chemistryPairs.forEach(pair => {
-    const key1 = `${pair.player1_id}-${pair.player2_id}`
-    const key2 = `${pair.player2_id}-${pair.player1_id}`
-    chemistryMap[key1] = pair.chemistry
-    chemistryMap[key2] = pair.chemistry
-  })
-
   // Filter connections to show only meaningful ones (above threshold)
-  const significantConnections = chemistryPairs.filter(pair => pair.chemistry > 30)
+  const significantConnections = chemistryPairs ? 
+    chemistryPairs.filter(pair => pair.chemistry > 30) : []
 
   return (
     <div className="w-full overflow-x-auto">
@@ -90,7 +82,7 @@ const SoccerPitch = ({ players, formation, chemistryPairs, viewMode }) => {
 
               return (
                 <line
-                  key={index}
+                  key={`${pair.player1_id}-${pair.player2_id}-${viewMode}`}
                   x1={x1}
                   y1={y1}
                   x2={x2}
@@ -98,7 +90,7 @@ const SoccerPitch = ({ players, formation, chemistryPairs, viewMode }) => {
                   stroke={color}
                   strokeWidth={thickness}
                   opacity="0.6"
-                  className="transition-all duration-300"
+                  className="transition-all duration-500"
                 />
               )
             })}
@@ -112,7 +104,7 @@ const SoccerPitch = ({ players, formation, chemistryPairs, viewMode }) => {
               const y = (coord.y / 100) * (pitchHeight - 80) + 40
 
               return (
-                <g key={player.value} className="cursor-pointer">
+                <g key={`${player.value}-${formation}`} className="cursor-pointer">
                   {/* Player circle */}
                   <circle
                     cx={x}
@@ -121,7 +113,7 @@ const SoccerPitch = ({ players, formation, chemistryPairs, viewMode }) => {
                     fill="rgba(255, 255, 255, 0.9)"
                     stroke="#16a34a"
                     strokeWidth="3"
-                    className="drop-shadow-md hover:stroke-primary-400 transition-colors duration-200"
+                    className="drop-shadow-md hover:stroke-primary-400 transition-all duration-500"
                   />
                   
                   {/* Player role */}
@@ -129,7 +121,7 @@ const SoccerPitch = ({ players, formation, chemistryPairs, viewMode }) => {
                     x={x}
                     y={y - 5}
                     textAnchor="middle"
-                    className="text-xs font-bold fill-blue-800"
+                    className="text-xs font-bold fill-blue-800 transition-all duration-500"
                   >
                     {player.player?.role_code || '?'}
                   </text>
@@ -139,17 +131,17 @@ const SoccerPitch = ({ players, formation, chemistryPairs, viewMode }) => {
                     x={x}
                     y={y + 8}
                     textAnchor="middle"
-                    className="text-xs font-medium fill-blue-800"
+                    className="text-xs font-medium fill-blue-800 transition-all duration-500"
                   >
                     {player.player?.short_name?.substring(0, 8) || 'Player'}
                   </text>
                   
-                  {/* Player name background (for better readability) */}
+                  {/* Player team name */}
                   <text
                     x={x}
                     y={y + 45}
                     textAnchor="middle"
-                    className="text-xs fill-blue-700"
+                    className="text-xs fill-blue-700 transition-all duration-500"
                     style={{ fontSize: '10px' }}
                   >
                     {player.player?.team_name?.substring(0, 10) || ''}

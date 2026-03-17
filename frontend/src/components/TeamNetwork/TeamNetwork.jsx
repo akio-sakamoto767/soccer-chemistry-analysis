@@ -27,8 +27,9 @@ const TeamNetwork = () => {
     loadFormations()
   }, [])
 
-  const handleVisualize = async () => {
-    if (selectedPlayers.length !== 11) {
+  // Extract the chemistry calculation logic
+  const calculateChemistry = async (players, formationToUse, viewModeToUse) => {
+    if (players.length !== 11) {
       setError('Please select exactly 11 players')
       return
     }
@@ -37,11 +38,11 @@ const TeamNetwork = () => {
     setError(null)
 
     try {
-      const playerIds = selectedPlayers.map(p => p.value)
+      const playerIds = players.map(p => p.value)
       const response = await apiClient.calculateTeamChemistry(
         playerIds,
-        formation,
-        viewMode
+        formationToUse,
+        viewModeToUse
       )
       setChemistryData(response.data)
     } catch (err) {
@@ -50,6 +51,18 @@ const TeamNetwork = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Auto-update visualization when formation, viewMode, or players change
+  useEffect(() => {
+    if (selectedPlayers.length === 11 && chemistryData) {
+      // Automatically recalculate when formation or chemistry type changes
+      calculateChemistry(selectedPlayers, formation, viewMode)
+    }
+  }, [formation, viewMode])
+
+  const handleVisualize = async () => {
+    await calculateChemistry(selectedPlayers, formation, viewMode)
   }
 
   const handleReset = () => {
@@ -104,6 +117,7 @@ const TeamNetwork = () => {
               value={formation}
               onChange={(e) => setFormation(e.target.value)}
               className="glass-select w-full px-4 py-3 text-lg"
+              disabled={loading}
             >
               <option value="4-3-3">4-3-3</option>
               <option value="4-4-2">4-4-2</option>
@@ -121,6 +135,7 @@ const TeamNetwork = () => {
               value={viewMode}
               onChange={(e) => setViewMode(e.target.value)}
               className="glass-select w-full px-4 py-3 text-lg"
+              disabled={loading}
             >
               <option value="average">Average Chemistry</option>
               <option value="offensive">Offensive Chemistry</option>
@@ -197,7 +212,16 @@ const TeamNetwork = () => {
       {chemistryData && (
         <div className="space-y-12">
           {/* Soccer Pitch Visualization */}
-          <div className="card-gradient glow-green">
+          <div className="card-gradient glow-green relative">
+            {loading && (
+              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
+                <div className="flex items-center space-x-3 text-white">
+                  <LoadingIcon className="w-8 h-8" />
+                  <span className="text-lg font-medium">Updating visualization...</span>
+                </div>
+              </div>
+            )}
+            
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
               <h2 className="text-3xl font-bold gradient-text text-glow">
                 Team Chemistry Network

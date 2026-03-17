@@ -89,46 +89,73 @@ export const getLineThickness = (score, minThickness = 1, maxThickness = 5) => {
  * Map formation string to position coordinates
  */
 export const getFormationCoordinates = (formation) => {
-  // Simplified formation mapping (x, y coordinates on 100x100 grid)
+  // Formation mapping (x, y coordinates on 100x100 grid)
+  // Based on standard soccer formations with proper positioning
   const formations = {
     '4-3-3': [
       { x: 50, y: 10 }, // GK
-      { x: 20, y: 25 }, // LB
-      { x: 40, y: 25 }, // CB
-      { x: 60, y: 25 }, // CB
-      { x: 80, y: 25 }, // RB
-      { x: 30, y: 50 }, // CM
+      { x: 15, y: 25 }, // LB
+      { x: 35, y: 25 }, // CB
+      { x: 65, y: 25 }, // CB
+      { x: 85, y: 25 }, // RB
+      { x: 25, y: 50 }, // LCM
       { x: 50, y: 50 }, // CM
-      { x: 70, y: 50 }, // CM
+      { x: 75, y: 50 }, // RCM
       { x: 20, y: 80 }, // LW
       { x: 50, y: 80 }, // ST
       { x: 80, y: 80 }, // RW
     ],
     '4-4-2': [
       { x: 50, y: 10 }, // GK
-      { x: 20, y: 25 }, // LB
-      { x: 40, y: 25 }, // CB
-      { x: 60, y: 25 }, // CB
-      { x: 80, y: 25 }, // RB
-      { x: 20, y: 50 }, // LM
-      { x: 40, y: 50 }, // CM
-      { x: 60, y: 50 }, // CM
-      { x: 80, y: 50 }, // RM
-      { x: 40, y: 80 }, // ST
-      { x: 60, y: 80 }, // ST
+      { x: 15, y: 25 }, // LB
+      { x: 35, y: 25 }, // CB
+      { x: 65, y: 25 }, // CB
+      { x: 85, y: 25 }, // RB
+      { x: 15, y: 50 }, // LM
+      { x: 35, y: 50 }, // LCM
+      { x: 65, y: 50 }, // RCM
+      { x: 85, y: 50 }, // RM
+      { x: 40, y: 80 }, // LST
+      { x: 60, y: 80 }, // RST
     ],
     '4-2-3-1': [
       { x: 50, y: 10 }, // GK
-      { x: 20, y: 25 }, // LB
-      { x: 40, y: 25 }, // CB
-      { x: 60, y: 25 }, // CB
-      { x: 80, y: 25 }, // RB
-      { x: 40, y: 40 }, // CDM
-      { x: 60, y: 40 }, // CDM
+      { x: 15, y: 25 }, // LB
+      { x: 35, y: 25 }, // CB
+      { x: 65, y: 25 }, // CB
+      { x: 85, y: 25 }, // RB
+      { x: 35, y: 40 }, // LCDM
+      { x: 65, y: 40 }, // RCDM
       { x: 20, y: 60 }, // LAM
       { x: 50, y: 60 }, // CAM
       { x: 80, y: 60 }, // RAM
       { x: 50, y: 80 }, // ST
+    ],
+    '3-5-2': [
+      { x: 50, y: 10 }, // GK
+      { x: 25, y: 25 }, // LCB
+      { x: 50, y: 25 }, // CB
+      { x: 75, y: 25 }, // RCB
+      { x: 10, y: 45 }, // LWB
+      { x: 30, y: 50 }, // LCM
+      { x: 50, y: 50 }, // CM
+      { x: 70, y: 50 }, // RCM
+      { x: 90, y: 45 }, // RWB
+      { x: 40, y: 80 }, // LST
+      { x: 60, y: 80 }, // RST
+    ],
+    '3-4-3': [
+      { x: 50, y: 10 }, // GK
+      { x: 25, y: 25 }, // LCB
+      { x: 50, y: 25 }, // CB
+      { x: 75, y: 25 }, // RCB
+      { x: 15, y: 50 }, // LM
+      { x: 35, y: 50 }, // LCM
+      { x: 65, y: 50 }, // RCM
+      { x: 85, y: 50 }, // RM
+      { x: 20, y: 80 }, // LW
+      { x: 50, y: 80 }, // ST
+      { x: 80, y: 80 }, // RW
     ],
   }
 
