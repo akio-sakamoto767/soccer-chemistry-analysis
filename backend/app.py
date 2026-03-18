@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 from contextlib import asynccontextmanager
 
-from config import ALLOWED_ORIGINS, API_PREFIX, SKIP_STARTUP_DATA_LOAD
+from config import ALLOWED_ORIGINS, API_PREFIX
 from services.data_loader import data_loader
 from routes import chemistry, players, optimizer
 from models.schemas import HealthResponse
@@ -25,16 +25,9 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Soccer Chemistry API...")
     
-    if not SKIP_STARTUP_DATA_LOAD:
-        try:
-            # Load data from Supabase (with local fallback)
-            data_loader.load_data()
-            logger.info("Data loaded successfully from Supabase")
-        except Exception as e:
-            logger.error(f"Failed to load data during startup: {e}")
-            logger.warning("API starting without data - endpoints will attempt lazy loading")
-    else:
-        logger.info("Skipping startup data loading (Railway optimization) - data will be loaded on first request")
+    # Railway optimization: Skip data loading during startup to prevent crashes
+    # Data will be loaded lazily on first API request
+    logger.info("API started successfully - data will be loaded on first request")
     
     yield
     
