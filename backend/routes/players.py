@@ -42,14 +42,17 @@ async def get_players(
         PlayersResponse with list of players
     """
     try:
-        players = data_loader.get_players(
-            search=search,
+        players_result = data_loader.get_players(
+            search=search or "",
             team_id=team_id,
             competition_id=competition_id,
             role_code=role_code,
             min_minutes=min_minutes,
             limit=limit
         )
+        
+        # Extract players list from result
+        players = players_result.get("players", [])
         
         # Convert to PlayerBasic models
         player_basics = []
@@ -71,7 +74,7 @@ async def get_players(
         
         return PlayersResponse(
             players=player_basics,
-            total=len(player_basics)
+            total=players_result.get("total", len(player_basics))
         )
         
     except Exception as e:

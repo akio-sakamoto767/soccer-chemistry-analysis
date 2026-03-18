@@ -407,6 +407,8 @@ class SupabaseDataLoader:
         team_id: Optional[int] = None,
         competition_id: Optional[int] = None,
         role_name: Optional[str] = None,
+        role_code: Optional[str] = None,  # Add role_code parameter
+        min_minutes: int = 500,  # Add min_minutes parameter
         limit: int = 50,
         offset: int = 0
     ) -> Dict:
@@ -450,6 +452,14 @@ class SupabaseDataLoader:
         # Apply role filter
         if role_name:
             filtered_players = [p for p in filtered_players if p.get('role_name') == role_name]
+        
+        # Apply role code filter
+        if role_code:
+            filtered_players = [p for p in filtered_players if p.get('role_code') == role_code]
+        
+        # Apply minimum minutes filter
+        if min_minutes > 0:
+            filtered_players = [p for p in filtered_players if (p.get('stats_minutes_played') or 0) >= min_minutes]
         
         # Apply pagination
         total = len(filtered_players)
