@@ -27,14 +27,14 @@ ALLOWED_ORIGINS = [
     "https://frontend-alpha-weld-87.vercel.app",  # Your deployed frontend
     "https://*.vercel.app",
     "https://*.netlify.app",
-    "https://*.railway.app",  # Railway deployments
-    "*"  # Allow all origins for deployment
+    "*"  # Allow all origins for Vercel deployment
 ]
 
 # Supabase Data Configuration
+# Note: Update this URL from your Supabase project dashboard -> Storage -> dataset bucket
 SUPABASE_DATASET_URL = os.getenv(
     "SUPABASE_DATASET_URL", 
-    "https://iebtpfstqbaqfkrkavgn.supabase.co/storage/v1/object/public/dataset"
+    "https://iebtpftsqbaqfkrkavgn.supabase.co/storage/v1/object/public/dataset/dataset"
 )
 
 # Data loading settings
