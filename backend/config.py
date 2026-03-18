@@ -46,6 +46,9 @@ ENABLE_DATA_CACHE = os.getenv("ENABLE_DATA_CACHE", "true").lower() == "true"
 DATA_PATH = os.getenv("DATA_PATH", str(BASE_DIR.parent / "data"))
 USE_LOCAL_DATA = os.getenv("USE_LOCAL_DATA", "false").lower() == "true"
 
+# Railway-specific: Skip startup data loading to avoid timeout
+SKIP_STARTUP_DATA_LOAD = os.getenv("SKIP_STARTUP_DATA_LOAD", "true").lower() == "true"
+
 # API settings
 API_PREFIX = "/api"
 API_VERSION = "v1"
