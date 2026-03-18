@@ -20,6 +20,7 @@ CORS(app, origins=["*"])
 @app.route('/', methods=['GET'])
 def root():
     """Root endpoint."""
+    logger.info("Root endpoint accessed")
     return jsonify({
         "message": "Soccer Chemistry API",
         "status": "running",
@@ -29,6 +30,7 @@ def root():
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint."""
+    logger.info("Health check accessed")
     return jsonify({
         "status": "healthy",
         "message": "API is running"
@@ -37,6 +39,7 @@ def health_check():
 @app.route('/api/health', methods=['GET'])
 def api_health_check():
     """API health check endpoint for Railway."""
+    logger.info("API health check accessed")
     return jsonify({
         "status": "healthy",
         "message": "Soccer Chemistry API is running",
@@ -46,6 +49,7 @@ def api_health_check():
 @app.route('/api/test', methods=['GET'])
 def test_endpoint():
     """Test endpoint."""
+    logger.info("Test endpoint accessed")
     return jsonify({
         "message": "Test successful",
         "status": "ok"

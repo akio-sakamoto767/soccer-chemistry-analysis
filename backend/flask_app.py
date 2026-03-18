@@ -95,11 +95,6 @@ def root():
             "error": "Data loading issues",
             "data_loaded": False
         })
-            "message": "Soccer Chemistry API",
-            "status": "running",
-            "data_loaded": False,
-            "error": str(e)
-        })
 
 # Debug endpoint
 @app.route('/debug', methods=['GET'])
