@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "runtime": "python3.11"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.py"
+    }
+  ],
+  "env": {
+    "SUPABASE_DATASET_URL": "https://iebtpfstqbaqfkrkavgn.supabase.co/storage/v1/object/public/dataset",
+    "DATA_DOWNLOAD_TIMEOUT": "300",
+    "DATA_RETRY_ATTEMPTS": "3",
+    "USE_LOCAL_DATA": "false",
+    "PYTHONPATH": "."
+  }
+}

@@ -22,10 +22,29 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
     "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "https://frontend-alpha-weld-87.vercel.app",  # Your deployed frontend
+    "https://*.vercel.app",
+    "https://*.netlify.app",
+    "https://*.railway.app",  # Railway deployments
+    "*"  # Allow all origins for deployment
 ]
 
-# Data path
+# Supabase Data Configuration
+SUPABASE_DATASET_URL = os.getenv(
+    "SUPABASE_DATASET_URL", 
+    "https://iebtpfstqbaqfkrkavgn.supabase.co/storage/v1/object/public/dataset"
+)
+
+# Data loading settings
+DATA_DOWNLOAD_TIMEOUT = int(os.getenv("DATA_DOWNLOAD_TIMEOUT", 300))  # 5 minutes
+DATA_RETRY_ATTEMPTS = int(os.getenv("DATA_RETRY_ATTEMPTS", 3))
+ENABLE_DATA_CACHE = os.getenv("ENABLE_DATA_CACHE", "true").lower() == "true"
+
+# Fallback to local data path for development
 DATA_PATH = os.getenv("DATA_PATH", str(BASE_DIR.parent / "data"))
+USE_LOCAL_DATA = os.getenv("USE_LOCAL_DATA", "false").lower() == "true"
 
 # API settings
 API_PREFIX = "/api"

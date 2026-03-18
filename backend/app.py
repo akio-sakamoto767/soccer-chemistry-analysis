@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 from contextlib import asynccontextmanager
 
-from config import ALLOWED_ORIGINS, API_PREFIX, DATA_PATH
+from config import ALLOWED_ORIGINS, API_PREFIX
 from services.data_loader import data_loader
 from routes import chemistry, players, optimizer
 from models.schemas import HealthResponse
@@ -25,11 +25,13 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Soccer Chemistry API...")
     try:
-        data_loader.load_data(DATA_PATH)
-        logger.info("Data loaded successfully")
+        # Load data from Supabase (with local fallback)
+        data_loader.load_data()
+        logger.info("Data loaded successfully from Supabase")
     except Exception as e:
-        logger.error(f"Failed to load data: {e}")
-        raise
+        logger.error(f"Failed to load data during startup: {e}")
+        logger.warning("API starting without data - endpoints will attempt lazy loading")
+        # Don't raise - allow API to start without data
     
     yield
     
@@ -76,6 +78,27 @@ async def health_check():
         "status": "healthy",
         "message": "API is operational"
     }
+
+
+@app.get(f"{API_PREFIX}/status")
+async def data_status():
+    """Check data loading status."""
+    try:
+        player_count = len(data_loader.players_enriched)
+        team_count = len(data_loader.teams_data)
+        
+        return {
+            "data_loaded": player_count > 0,
+            "players_count": player_count,
+            "teams_count": team_count,
+            "supabase_url": data_loader.session.get_adapter('https://').config.get('base_url', 'Unknown') if hasattr(data_loader, 'session') else 'Unknown'
+        }
+    except Exception as e:
+        return {
+            "data_loaded": False,
+            "error": str(e),
+            "message": "Data loading failed - check logs"
+        }
 
 
 if __name__ == "__main__":

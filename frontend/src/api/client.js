@@ -3,18 +3,26 @@ import axios from 'axios'
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api',
-  timeout: 30000,
+  timeout: 120000, // Increased to 2 minutes for initial data loading
   headers: {
     'Content-Type': 'application/json',
   },
 })
 
-console.log('API Base URL:', import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api')
+console.log('🚀 API Base URL:', import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api')
+console.log('🔧 Environment Mode:', import.meta.env.MODE)
+console.log('📦 All Env Vars:', import.meta.env)
 
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
     console.log(`Making ${config.method?.toUpperCase()} request to ${config.url}`)
+    
+    // Show loading message for potentially slow requests
+    if (config.url?.includes('/players') && !config._isRetry) {
+      console.log('⏳ First request may take 60-90 seconds while backend loads data from Supabase...')
+    }
+    
     return config
   },
   (error) => {
@@ -46,6 +54,9 @@ api.interceptors.response.use(
 export const apiClient = {
   // Health check
   health: () => api.get('/health'),
+
+  // Test if backend is ready (faster endpoint)
+  testConnection: () => api.get('/health', { timeout: 10000 }),
 
   // Players
   getPlayers: (params = {}) => api.get('/players', { params }),

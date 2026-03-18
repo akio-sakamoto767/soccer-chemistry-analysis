@@ -11,7 +11,7 @@ import logging
 # Add the backend directory to the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from services.data_loader import DataLoader
+from services.data_loader import data_loader
 from services.chemistry_calculator import chemistry_calculator
 from services.squad_optimizer import squad_optimizer
 
@@ -33,8 +33,7 @@ cors_origins = [
 
 CORS(app, origins=cors_origins)
 
-# Initialize data loader
-data_loader = DataLoader()
+# Data loader is already initialized as singleton
 
 # Load data on startup (non-blocking)
 def initialize_data():

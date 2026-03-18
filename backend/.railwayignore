@@ -1,0 +1,62 @@
+# Railway ignore file - exclude unnecessary files from deployment
+
+# Development files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git/
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
+
+# Local data files (not needed for Railway)
+../data/
+data/
+*.csv
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+test_*.py
+*_test.py
+tests/
+
+# Documentation
+README.md
+docs/
+
+# Other deployment configs
+vercel.json
+Dockerfile
+docker-compose.yml
+.dockerignore
+render.yaml
+
+# Environment files (use Railway's environment variables instead)
+.env
+.env.local
+.env.production
