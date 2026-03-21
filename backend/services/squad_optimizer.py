@@ -13,6 +13,34 @@ logger = logging.getLogger(__name__)
 class SquadOptimizer:
     """Optimizer for selecting best starting XI from squad pool."""
     
+    @staticmethod
+    def safe_numeric(value, default=0.0):
+        """Convert value to float, handling strings and None safely."""
+        if value is None or value == '':
+            return default
+        try:
+            if isinstance(value, str):
+                value = value.strip()
+                if value == '' or value.lower() in ('null', 'none', 'nan'):
+                    return default
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+    
+    @staticmethod
+    def safe_int(value, default=0):
+        """Convert value to int, handling strings and None safely."""
+        if value is None or value == '':
+            return default
+        try:
+            if isinstance(value, str):
+                value = value.strip()
+                if value == '' or value.lower() in ('null', 'none', 'nan'):
+                    return default
+            return int(float(value))
+        except (ValueError, TypeError):
+            return default
+    
     # Position requirements for common formations
     FORMATION_POSITIONS = {
         '4-4-2': ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD'],
@@ -76,8 +104,17 @@ class SquadOptimizer:
         logger.info(f"Optimization complete:")
         logger.info(f"  - Total chemistry: {total_chemistry:.2f}")
         logger.info(f"  - Average chemistry: {average_chemistry:.2f}")
-        logger.info(f"  - Top partnership: {top_partnerships[0]['chemistry']:.2f if top_partnerships else 'None'}")
-        logger.info(f"  - Weakest partnership: {weakest_link['chemistry']:.2f if weakest_link else 'None'}")
+        
+        if top_partnerships:
+            logger.info(f"  - Top partnership: {top_partnerships[0]['chemistry']:.2f}")
+        else:
+            logger.info(f"  - Top partnership: None")
+        
+        if weakest_link:
+            logger.info(f"  - Weakest partnership: {weakest_link['chemistry']:.2f}")
+        else:
+            logger.info(f"  - Weakest partnership: None")
+        
         logger.info(f"  - Chemistry type: {'Offensive' if weight > 0.6 else 'Defensive' if weight < 0.4 else 'Balanced'}")
         
         # Create formation positions mapping
@@ -85,10 +122,10 @@ class SquadOptimizer:
         position_names = ['gk', 'rb', 'rcb', 'lcb', 'lb', 'rdm', 'ldm', 'rcm', 'lcm', 'rw', 'lw']
         for i, player in enumerate(optimized_lineup):
             if i < len(position_names):
-                formation_positions[position_names[i]] = player['id']
+                formation_positions[position_names[i]] = self.safe_int(player.get('id'))
         
         return {
-            'optimized_lineup': [p['id'] for p in optimized_lineup],
+            'optimized_lineup': [self.safe_int(p.get('id')) for p in optimized_lineup],
             'total_chemistry': round(total_chemistry, 2),
             'average_chemistry': round(average_chemistry, 2),
             'formation': formation,
@@ -112,6 +149,7 @@ class SquadOptimizer:
         """
         Greedy algorithm for squad optimization.
         Selects players one by one to maximize/minimize chemistry.
+        Fully deterministic - same inputs produce same outputs.
         """
         lineup = []
         available_players = squad_pool.copy()
@@ -175,55 +213,106 @@ class SquadOptimizer:
     
     def _calculate_individual_score(self, player: Dict, position: str, weight: float) -> float:
         """Calculate individual player score for first selection."""
-        # Base score from overall rating
-        base_score = player.get('overall_rating', 50)
+        # Base score from overall rating - convert to float
+        base_score = self.safe_numeric(player.get('attr_overall_rating') or player.get('overall_rating'), 50.0)
         
         # Position compatibility bonus
         role_code = player.get('role_code', '')
-        position_match = 0
+        position_match = 0.0
         
-        if position == 'GK' and role_code == 'GK':
-            position_match = 20
+        if position == 'GK' and role_code == 'GKP':
+            position_match = 20.0
         elif position == 'DEF' and role_code == 'DEF':
-            position_match = 15
+            position_match = 15.0
         elif position == 'MID' and role_code == 'MID':
-            position_match = 15
+            position_match = 15.0
         elif position == 'FWD' and role_code == 'FWD':
-            position_match = 15
+            position_match = 15.0
         
-        # Weight-based adjustments
-        if weight > 0.6:  # Offensive focus
+        # Strategy-specific bonuses based on weight
+        strategy_bonus = 0.0
+        
+        # Get work rates (check both field name formats)
+        work_rate_attack = player.get('work_rate_attack') or player.get('attr_work_rate_attack', 'Medium')
+        work_rate_defense = player.get('work_rate_defense') or player.get('attr_work_rate_defense', 'Medium')
+        
+        if weight > 0.6:  # Offensive focus (weight = 0.7)
+            # Heavily favor attacking players and high attacking work rate
             if role_code in ['FWD', 'MID']:
-                position_match += 10
-        elif weight < 0.4:  # Defensive focus
-            if role_code in ['DEF', 'GK']:
-                position_match += 10
+                strategy_bonus += 20.0  # Significant bonus for attackers
+                if work_rate_attack == 'High':
+                    strategy_bonus += 15.0  # Extra bonus for high attacking work rate
+            # Even defenders should have some attacking ability
+            if work_rate_attack == 'High':
+                strategy_bonus += 5.0
         
-        return base_score + position_match
+        elif weight < 0.4:  # Defensive focus (weight = 0.3)
+            # Heavily favor defensive players and high defensive work rate
+            if role_code in ['DEF', 'GKP']:
+                strategy_bonus += 20.0  # Significant bonus for defenders
+                if work_rate_defense == 'High':
+                    strategy_bonus += 15.0  # Extra bonus for high defensive work rate
+            # Even attackers should have some defensive ability
+            if work_rate_defense == 'High':
+                strategy_bonus += 5.0
+        
+        else:  # Balanced (weight = 0.5)
+            # Favor players with balanced work rates
+            if work_rate_attack == 'Medium' and work_rate_defense == 'Medium':
+                strategy_bonus += 10.0
+            elif work_rate_attack == 'High' and work_rate_defense == 'High':
+                strategy_bonus += 15.0  # Extra bonus for all-rounders
+        
+        total_score = base_score + position_match + strategy_bonus
+        
+        logger.debug(f"Individual score for {player.get('short_name', 'Unknown')}: base={base_score:.1f}, position={position_match:.1f}, strategy={strategy_bonus:.1f}, total={total_score:.1f}")
+        
+        return total_score
     
     def _get_position_bonus(self, player: Dict, position: str, maximize: bool, weight: float) -> float:
         """Calculate position-specific bonus based on optimization parameters."""
         role_code = player.get('role_code', '')
-        bonus = 0
+        bonus = 0.0
         
-        # Offensive weight bonuses
-        if weight > 0.6:  # Offensive focus
+        # Get work rates (check both field name formats)
+        work_rate_attack = player.get('work_rate_attack') or player.get('attr_work_rate_attack', 'Medium')
+        work_rate_defense = player.get('work_rate_defense') or player.get('attr_work_rate_defense', 'Medium')
+        
+        # Offensive strategy bonuses (weight > 0.6)
+        if weight > 0.6:
+            # Heavily favor attacking positions and work rates
             if position in ['FWD', 'MID'] and role_code in ['FWD', 'MID']:
-                bonus += 5 if maximize else -5
+                bonus += 15.0 if maximize else -15.0
+            
+            # Extra bonus for high attacking work rate
+            if work_rate_attack == 'High':
+                bonus += 10.0 if maximize else -10.0
+            
+            # Penalty for low attacking work rate in attacking positions
+            if position in ['FWD', 'MID'] and work_rate_attack == 'Low':
+                bonus -= 10.0 if maximize else 10.0
         
-        # Defensive weight bonuses  
-        elif weight < 0.4:  # Defensive focus
-            if position in ['DEF', 'GK'] and role_code in ['DEF', 'GK']:
-                bonus += 5 if maximize else -5
+        # Defensive strategy bonuses (weight < 0.4)
+        elif weight < 0.4:
+            # Heavily favor defensive positions and work rates
+            if position in ['DEF', 'GK'] and role_code in ['DEF', 'GKP']:
+                bonus += 15.0 if maximize else -15.0
+            
+            # Extra bonus for high defensive work rate
+            if work_rate_defense == 'High':
+                bonus += 10.0 if maximize else -10.0
+            
+            # Penalty for low defensive work rate in defensive positions
+            if position in ['DEF', 'GK'] and work_rate_defense == 'Low':
+                bonus -= 10.0 if maximize else 10.0
         
-        # Work rate considerations
-        work_rate_attack = player.get('work_rate_attack', 'Medium')
-        work_rate_defense = player.get('work_rate_defense', 'Medium')
-        
-        if weight > 0.6 and work_rate_attack == 'High':
-            bonus += 3 if maximize else -3
-        elif weight < 0.4 and work_rate_defense == 'High':
-            bonus += 3 if maximize else -3
+        # Balanced strategy bonuses (weight around 0.5)
+        else:
+            # Favor balanced work rates
+            if work_rate_attack == 'Medium' and work_rate_defense == 'Medium':
+                bonus += 5.0 if maximize else -5.0
+            elif work_rate_attack == 'High' and work_rate_defense == 'High':
+                bonus += 8.0 if maximize else -8.0  # All-rounders
         
         return bonus
     
@@ -231,11 +320,11 @@ class SquadOptimizer:
         """Check if player can play the required position."""
         player_role = player.get('role_code', '')
         
-        # Simple position matching
+        # Simple position matching (handle both GK and GKP)
         if required_position == 'GK':
-            return player_role == 'GK'
+            return player_role in ['GK', 'GKP']
         elif required_position == 'DEF':
-            return player_role in ['DEF', 'GK']  # Allow GK as backup
+            return player_role in ['DEF', 'GK', 'GKP']  # Allow GK as backup
         elif required_position == 'MID':
             return player_role in ['MID', 'DEF', 'FWD']  # Flexible
         elif required_position == 'FWD':
@@ -256,8 +345,9 @@ class SquadOptimizer:
             chemistry_result = chemistry_calculator.calculate_chemistry(candidate, player)
             
             # Enhanced weighted combination with amplification
-            offensive_chem = chemistry_result['offensive_chemistry']
-            defensive_chem = chemistry_result['defensive_chemistry']
+            # Convert to float to ensure numeric operations
+            offensive_chem = self.safe_numeric(chemistry_result.get('offensive_chemistry', 0))
+            defensive_chem = self.safe_numeric(chemistry_result.get('defensive_chemistry', 0))
             
             # Apply weight with amplification for more dramatic differences
             if weight > 0.7:  # Heavy offensive focus
@@ -281,28 +371,28 @@ class SquadOptimizer:
         """Calculate role-based chemistry bonus based on weight."""
         role1 = player1.get('role_code', '')
         role2 = player2.get('role_code', '')
-        bonus = 0
+        bonus = 0.0
         
         # Offensive chemistry bonuses
         if weight > 0.6:
             # FWD-MID partnerships get bonus in offensive mode
             if (role1 == 'FWD' and role2 == 'MID') or (role1 == 'MID' and role2 == 'FWD'):
-                bonus += 8
+                bonus += 8.0
             # Creative partnerships
             elif role1 == 'MID' and role2 == 'MID':
-                bonus += 5
+                bonus += 5.0
         
         # Defensive chemistry bonuses
         elif weight < 0.4:
             # DEF-DEF partnerships get bonus in defensive mode
             if role1 == 'DEF' and role2 == 'DEF':
-                bonus += 8
+                bonus += 8.0
             # DEF-GK partnerships
             elif (role1 == 'DEF' and role2 == 'GK') or (role1 == 'GK' and role2 == 'DEF'):
-                bonus += 6
+                bonus += 6.0
             # DEF-MID partnerships (defensive midfield)
             elif (role1 == 'DEF' and role2 == 'MID') or (role1 == 'MID' and role2 == 'DEF'):
-                bonus += 4
+                bonus += 4.0
         
         return bonus
     
@@ -323,8 +413,9 @@ class SquadOptimizer:
                 chemistry_result = chemistry_calculator.calculate_chemistry(player1, player2)
                 
                 # Enhanced weighted combination (same as candidate calculation)
-                offensive_chem = chemistry_result['offensive_chemistry']
-                defensive_chem = chemistry_result['defensive_chemistry']
+                # Convert to float to ensure numeric operations
+                offensive_chem = self.safe_numeric(chemistry_result.get('offensive_chemistry', 0))
+                defensive_chem = self.safe_numeric(chemistry_result.get('defensive_chemistry', 0))
                 
                 # Apply weight with amplification for more dramatic differences
                 if weight > 0.7:  # Heavy offensive focus
@@ -341,8 +432,8 @@ class SquadOptimizer:
                 chemistry_score += role_bonus
                 
                 pairs.append({
-                    'player1_id': player1['id'],
-                    'player2_id': player2['id'],
+                    'player1_id': self.safe_int(player1.get('id')),
+                    'player2_id': self.safe_int(player2.get('id')),
                     'chemistry': round(chemistry_score, 2),
                     'offensive_chemistry': round(offensive_chem, 2),
                     'defensive_chemistry': round(defensive_chem, 2),

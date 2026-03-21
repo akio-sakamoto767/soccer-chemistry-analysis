@@ -61,25 +61,41 @@ async def optimize_squad(request: OptimizeSquadRequest):
             weight=request.weight
         )
         
-        # Convert players to PlayerBasic
+        # Convert players to PlayerBasic with safe type conversion
         player_basics = []
         for player_id in result['optimized_lineup']:
-            player = data_loader.get_player_by_id(player_id)
+            # Convert to string for lookup
+            player = data_loader.get_player_by_id(str(player_id))
             if player:
+                # Safe conversion helpers
+                def safe_int(v):
+                    try:
+                        return int(float(v)) if v is not None and v != '' else None
+                    except (ValueError, TypeError):
+                        return None
+
+                def safe_float(v):
+                    try:
+                        return float(v) if v is not None and v != '' else None
+                    except (ValueError, TypeError):
+                        return None
+                
                 player_basics.append(
                     PlayerBasic(
-                        id=player['id'],
+                        id=safe_int(player.get('id')),
                         short_name=player.get('short_name', 'Unknown'),
                         first_name=player.get('first_name'),
                         last_name=player.get('last_name'),
                         role_name=player.get('role_name'),
                         role_code=player.get('role_code'),
                         team_name=player.get('team_name'),
-                        team_id=player.get('team_id'),
-                        overall_rating=player.get('overall_rating'),
+                        team_id=safe_int(player.get('team_id')),
+                        overall_rating=safe_float(player.get('overall_rating')),
                         url_image=player.get('url_image')
                     )
                 )
+            else:
+                logger.warning(f"Player {player_id} not found in data_loader")
         
         # Convert partnerships
         top_partnerships = [

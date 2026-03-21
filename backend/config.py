@@ -43,8 +43,12 @@ DATA_RETRY_ATTEMPTS = int(os.getenv("DATA_RETRY_ATTEMPTS", 3))
 ENABLE_DATA_CACHE = os.getenv("ENABLE_DATA_CACHE", "true").lower() == "true"
 
 # Fallback to local data path for development
-DATA_PATH = os.getenv("DATA_PATH", str(BASE_DIR.parent / "data"))
-USE_LOCAL_DATA = os.getenv("USE_LOCAL_DATA", "false").lower() == "true"
+_default_data_path = str(BASE_DIR.parent / "data")
+DATA_PATH = os.getenv("DATA_PATH", _default_data_path)
+# Resolve to absolute path if relative
+if not os.path.isabs(DATA_PATH):
+    DATA_PATH = str((BASE_DIR.parent / DATA_PATH).resolve())
+USE_LOCAL_DATA = os.getenv("USE_LOCAL_DATA", "true").lower() == "true"  # Default to true
 
 # Railway-specific: Skip startup data loading to avoid timeout
 SKIP_STARTUP_DATA_LOAD = os.getenv("SKIP_STARTUP_DATA_LOAD", "true").lower() == "true"

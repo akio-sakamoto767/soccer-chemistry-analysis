@@ -85,6 +85,16 @@ export const apiClient = {
       maximize,
       weight,
     }),
+
+  // Recommend team (optimized with chemistry)
+  recommendTeam: (formation, minRating = 70, chemistryType = 'balanced', poolSize = 100) =>
+    api.post('/recommend-team', {
+      formation,
+      min_rating: minRating,
+      chemistry_type: chemistryType,
+      pool_size: poolSize,
+      maximize: true,
+    }),
 }
 
 export default api

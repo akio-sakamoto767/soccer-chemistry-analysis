@@ -24,7 +24,9 @@ export const usePlayers = () => {
           limit: 50,
           min_minutes: 0
         })
-        setPlayers(response.data.players)
+        const raw = response.data.players
+        const playersArray = Array.isArray(raw) ? raw : Object.values(raw || {})
+        setPlayers(playersArray)
       } catch (err) {
         console.error('Error searching players:', err)
         setError('Failed to search players')
@@ -62,7 +64,9 @@ export const usePlayers = () => {
         limit: 20,
         min_minutes: 0
       })
-      setPlayers(response.data.players)
+      const raw = response.data.players
+      const playersArray = Array.isArray(raw) ? raw : Object.values(raw || {})
+      setPlayers(playersArray)
     } catch (err) {
       console.error('Error loading initial players:', err)
       setError('Failed to load players')

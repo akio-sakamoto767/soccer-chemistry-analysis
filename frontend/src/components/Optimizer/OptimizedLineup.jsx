@@ -17,9 +17,16 @@ const OptimizedLineup = ({ result, squadPool, formation, maximize, weight }) => 
   } = result
 
   // Convert optimized lineup IDs to player objects for visualization
-  const optimizedPlayers = optimized_lineup.map(playerId => {
-    return squadPool.find(p => p.value === playerId)
-  }).filter(Boolean)
+  // Use the players array from the backend response which has full player details
+  const optimizedPlayers = players && players.length > 0
+    ? players.map(player => ({
+        value: player.id,
+        label: player.short_name || 'Unknown',
+        player: player
+      }))
+    : optimized_lineup.map(playerId => {
+        return squadPool.find(p => p.value === playerId)
+      }).filter(Boolean)
 
   // Create chemistry pairs for visualization (simplified)
   const chemistryPairs = top_partnerships.map(partnership => ({

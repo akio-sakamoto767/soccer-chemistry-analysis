@@ -24,7 +24,7 @@ async def get_players(
     team_id: Optional[int] = Query(None, description="Filter by team ID"),
     competition_id: Optional[int] = Query(None, description="Filter by competition ID"),
     role_code: Optional[str] = Query(None, description="Filter by role (FWD, MID, DEF, GK)"),
-    min_minutes: int = Query(500, description="Minimum minutes played"),
+    min_minutes: int = Query(0, description="Minimum minutes played"),
     limit: int = Query(100, ge=1, le=500, description="Maximum number of results")
 ):
     """
@@ -41,6 +41,7 @@ async def get_players(
     Returns:
         PlayersResponse with list of players
     """
+    logger.info(f"🔥🔥🔥 GET /players called with limit={limit}, min_minutes={min_minutes}, search={search}")
     try:
         players_result = data_loader.get_players(
             search=search or "",
@@ -54,28 +55,59 @@ async def get_players(
         # Extract players list from result
         players = players_result.get("players", [])
         
+        # Helper functions for safe type conversion
+        def safe_int(v):
+            try:
+                return int(float(v)) if v is not None and v != '' else None
+            except (ValueError, TypeError):
+                return None
+
+        def safe_float(v):
+            try:
+                return float(v) if v is not None and v != '' else None
+            except (ValueError, TypeError):
+                return None
+        
         # Convert to PlayerBasic models
         player_basics = []
+        skipped_count = 0
         for player in players:
-            player_basics.append(
-                PlayerBasic(
-                    id=player['id'],
-                    short_name=player.get('short_name', 'Unknown'),
-                    first_name=player.get('first_name'),
-                    last_name=player.get('last_name'),
-                    role_name=player.get('role_name'),
-                    role_code=player.get('role_code'),
-                    team_name=player.get('team_name'),
-                    team_id=player.get('team_id'),
-                    overall_rating=player.get('overall_rating'),
-                    url_image=player.get('url_image')
+            try:
+                pid = safe_int(player.get('id'))
+                if pid is None:
+                    skipped_count += 1
+                    logger.warning(f"Skipping player with invalid id: {player.get('id')}")
+                    continue
+                    
+                player_basics.append(
+                    PlayerBasic(
+                        id=pid,
+                        short_name=player.get('short_name') or 'Unknown',
+                        first_name=player.get('first_name'),
+                        last_name=player.get('last_name'),
+                        role_name=player.get('role_name'),
+                        role_code=player.get('role_code'),
+                        team_name=player.get('team_name'),
+                        team_id=safe_int(player.get('team_id')),
+                        overall_rating=safe_float(player.get('overall_rating')),
+                        url_image=player.get('url_image')
+                    )
                 )
-            )
+            except Exception as e:
+                logger.warning(f"Skipping player {player.get('id')}: {e}")
+                skipped_count += 1
+                continue
         
-        return PlayersResponse(
+        logger.info(f"Converted {len(player_basics)} players out of {len(players)} (skipped {skipped_count})")
+        logger.info(f"Returning PlayersResponse with {len(player_basics)} players and total={players_result.get('total', len(player_basics))}")
+        logger.info(f"First player_basic: {player_basics[0] if player_basics else 'None'}")
+        
+        response = PlayersResponse(
             players=player_basics,
             total=players_result.get("total", len(player_basics))
         )
+        logger.info(f"Response created: players count={len(response.players)}, total={response.total}")
+        return response
         
     except Exception as e:
         logger.error(f"Error getting players: {e}")

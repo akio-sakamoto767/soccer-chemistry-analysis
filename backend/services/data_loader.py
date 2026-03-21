@@ -239,17 +239,50 @@ class SupabaseDataLoader:
         """Load all CSV files from local filesystem."""
         data_path = Path(DATA_PATH)
         
+        logger.info(f"=" * 60)
+        logger.info(f"Loading data from local path: {data_path.absolute()}")
+        logger.info(f"Path exists: {data_path.exists()}")
+        logger.info(f"=" * 60)
+        
+        if not data_path.exists():
+            raise FileNotFoundError(f"Data path does not exist: {data_path.absolute()}")
+        
         # Load core tables
         self.players_data = self._read_local_csv_file(data_path / "players.csv")
+        logger.info(f"✅ Loaded {len(self.players_data):,} players from CSV")
+        
         self.teams_data = self._read_local_csv_file(data_path / "teams.csv")
+        logger.info(f"✅ Loaded {len(self.teams_data):,} teams")
+        
         self.competitions_data = self._read_local_csv_file(data_path / "competitions.csv")
+        logger.info(f"✅ Loaded {len(self.competitions_data):,} competitions")
+        
         self.seasons_data = self._read_local_csv_file(data_path / "seasons.csv")
+        logger.info(f"✅ Loaded {len(self.seasons_data):,} seasons")
+        
         self.areas_data = self._read_local_csv_file(data_path / "areas.csv")
+        logger.info(f"✅ Loaded {len(self.areas_data):,} areas")
         
         # Load player data
         self.player_stats_data = self._read_local_csv_file(data_path / "player_season_stats_totals.csv")
+        logger.info(f"✅ Loaded {len(self.player_stats_data):,} player stats")
+        
         self.player_attributes_data = self._read_local_csv_file(data_path / "player_attributes_general.csv")
+        logger.info(f"✅ Loaded {len(self.player_attributes_data):,} player attributes")
+        
         self.player_contracts_data = self._read_local_csv_file(data_path / "player_current_contracts.csv")
+        logger.info(f"✅ Loaded {len(self.player_contracts_data):,} player contracts")
+        
+        # Load tactical data
+        self.tactical_schemes_data = self._read_local_csv_file(data_path / "tactical_schemes.csv")
+        logger.info(f"✅ Loaded {len(self.tactical_schemes_data):,} tactical schemes")
+        
+        self.team_seasons_data = self._read_local_csv_file(data_path / "team_seasons.csv")
+        logger.info(f"✅ Loaded {len(self.team_seasons_data):,} team seasons")
+        
+        logger.info(f"=" * 60)
+        logger.info(f"📊 Total: {len(self.players_data):,} players, {len(self.teams_data):,} teams, {len(self.competitions_data):,} competitions")
+        logger.info(f"=" * 60)
         
         # Load tactical data
         self.tactical_schemes_data = self._read_local_csv_file(data_path / "tactical_schemes.csv")
@@ -344,6 +377,16 @@ class SupabaseDataLoader:
                 if team_id and team_id in teams_lookup:
                     enriched_player['team_name'] = teams_lookup[team_id].get('team_name', '')
                 
+                # Map attr_overall_rating to overall_rating for easier access
+                if 'attr_overall_rating' in enriched_player and 'overall_rating' not in enriched_player:
+                    enriched_player['overall_rating'] = enriched_player['attr_overall_rating']
+                
+                # Map attr_work_rate fields for easier access
+                if 'attr_work_rate_attack' in enriched_player:
+                    enriched_player['work_rate_attack'] = enriched_player['attr_work_rate_attack']
+                if 'attr_work_rate_defense' in enriched_player:
+                    enriched_player['work_rate_defense'] = enriched_player['attr_work_rate_defense']
+                
                 # Convert numeric fields
                 for field in ['overall_rating', 'potential', 'value_eur', 'wage_eur', 'age', 'height_cm', 'weight_kg']:
                     if field in enriched_player:
@@ -361,7 +404,11 @@ class SupabaseDataLoader:
                 continue
         
         self.players_enriched = enriched_players
-        logger.info(f"Successfully enriched {len(self.players_enriched)} players")
+        logger.info(f"=" * 60)
+        logger.info(f"✅ Successfully enriched {len(self.players_enriched):,} players out of {len(self.players_data):,} total")
+        if len(self.players_data) > 0:
+            logger.info(f"   Enrichment rate: {(len(self.players_enriched)/len(self.players_data)*100):.1f}%")
+        logger.info(f"=" * 60)
     
     def _create_lookups(self):
         """Create lookup dictionaries for fast access."""
@@ -435,10 +482,10 @@ class SupabaseDataLoader:
             search_lower = search.lower()
             filtered_players = [
                 p for p in filtered_players
-                if (search_lower in p.get('short_name', '').lower() or
-                    search_lower in p.get('first_name', '').lower() or
-                    search_lower in p.get('last_name', '').lower() or
-                    search_lower in p.get('player_name', '').lower())
+                if (search_lower in (p.get('short_name') or '').lower() or
+                    search_lower in (p.get('first_name') or '').lower() or
+                    search_lower in (p.get('last_name') or '').lower() or
+                    search_lower in (p.get('player_name') or '').lower())
             ]
         
         # Apply team filter

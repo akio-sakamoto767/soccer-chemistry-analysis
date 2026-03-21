@@ -1,7 +1,7 @@
 import React from 'react'
 import { getFormationCoordinates, getChemistryColorHex, getLineThickness } from '../../utils/helpers'
 
-const SoccerPitch = ({ players, formation, chemistryPairs, viewMode }) => {
+const SoccerPitch = ({ players, formation, chemistryPairs, viewMode, chemistryFilter = 'all' }) => {
   if (!players || players.length !== 11) {
     return (
       <div className="w-full h-96 glass-panel rounded-lg flex items-center justify-center">
@@ -17,20 +17,39 @@ const SoccerPitch = ({ players, formation, chemistryPairs, viewMode }) => {
 
   // Filter connections to show only meaningful ones (above threshold)
   const significantConnections = chemistryPairs ? 
-    chemistryPairs.filter(pair => pair.chemistry > 30) : []
+    chemistryPairs.filter(pair => {
+      const chemistry = pair.chemistry
+      
+      // Lower threshold to show more connections
+      if (chemistry <= 20) return false
+      
+      // Then filter by selected quality
+      if (chemistryFilter === 'all') return true
+      if (chemistryFilter === 'excellent') return chemistry >= 80
+      if (chemistryFilter === 'good') return chemistry >= 60 && chemistry < 80
+      if (chemistryFilter === 'poor') return chemistry >= 20 && chemistry < 60
+      
+      return true
+    }) : []
 
   // Debug: Log chemistry values to see the range
   React.useEffect(() => {
+    console.log('=== SoccerPitch Debug ===')
+    console.log('chemistryPairs:', chemistryPairs)
+    console.log('chemistryFilter:', chemistryFilter)
+    console.log('significantConnections:', significantConnections.length)
+    
     if (chemistryPairs && chemistryPairs.length > 0) {
       const scores = chemistryPairs.map(pair => pair.chemistry)
       console.log('Chemistry scores range:', {
         min: Math.min(...scores),
         max: Math.max(...scores),
         avg: scores.reduce((a, b) => a + b, 0) / scores.length,
-        sample: scores.slice(0, 5)
+        total: scores.length,
+        sample: scores.slice(0, 10)
       })
     }
-  }, [chemistryPairs])
+  }, [chemistryPairs, chemistryFilter])
 
   return (
     <div className="w-full overflow-x-auto">
@@ -76,46 +95,61 @@ const SoccerPitch = ({ players, formation, chemistryPairs, viewMode }) => {
           {/* Chemistry Lines */}
           <g>
             {significantConnections.map((pair, index) => {
-              const player1Index = players.findIndex(p => p.value === pair.player1_id)
-              const player2Index = players.findIndex(p => p.value === pair.player2_id)
+              // Convert IDs to strings for comparison since they might be different types
+              const player1Id = String(pair.player1_id)
+              const player2Id = String(pair.player2_id)
               
-              if (player1Index === -1 || player2Index === -1) return null
+              const player1Index = players.findIndex(p => String(p.value) === player1Id)
+              const player2Index = players.findIndex(p => String(p.value) === player2Id)
+              
+              // Debug first few pairs
+              if (index < 3) {
+                console.log(`Pair ${index}:`, {
+                  pair,
+                  player1Id,
+                  player2Id,
+                  player1Index,
+                  player2Index,
+                  playerValues: players.map(p => p.value)
+                })
+              }
+              
+              if (player1Index === -1 || player2Index === -1) {
+                if (index < 3) {
+                  console.warn(`Player not found for pair ${index}:`, pair)
+                }
+                return null
+              }
 
               const coord1 = coordinates[player1Index]
               const coord2 = coordinates[player2Index]
+              
+              if (!coord1 || !coord2) {
+                console.warn(`Coordinates not found for indices ${player1Index}, ${player2Index}`)
+                return null
+              }
               
               const x1 = (coord1.x / 100) * (pitchWidth - 80) + 40
               const y1 = (coord1.y / 100) * (pitchHeight - 80) + 40
               const x2 = (coord2.x / 100) * (pitchWidth - 80) + 40
               const y2 = (coord2.y / 100) * (pitchHeight - 80) + 40
 
-              // Get chemistry score - add some variation for testing if all scores are similar
+              // Get chemistry score
               let chemistry = pair.chemistry
-              
-              // If all chemistry scores are very similar (within 5 points), add artificial variation for better visualization
-              const allScores = significantConnections.map(p => p.chemistry)
-              const minScore = Math.min(...allScores)
-              const maxScore = Math.max(...allScores)
-              
-              if (maxScore - minScore < 10) {
-                // Add deterministic variation based on player IDs for consistent results
-                const variation = ((pair.player1_id + pair.player2_id) % 40) - 20
-                chemistry = Math.max(30, Math.min(100, chemistry + variation))
-              }
               
               const color = getChemistryColorHex(chemistry)
               const thickness = getLineThickness(chemistry, 1, 6)
 
               return (
                 <line
-                  key={`${pair.player1_id}-${pair.player2_id}-${viewMode}`}
+                  key={`${pair.player1_id}-${pair.player2_id}-${viewMode}-${index}`}
                   x1={x1}
                   y1={y1}
                   x2={x2}
                   y2={y2}
                   stroke={color}
                   strokeWidth={thickness}
-                  opacity="0.7"
+                  opacity="0.8"
                   className="transition-all duration-500"
                 />
               )
@@ -195,6 +229,17 @@ const SoccerPitch = ({ players, formation, chemistryPairs, viewMode }) => {
             className="text-sm font-medium fill-white capitalize"
           >
             {viewMode} Chemistry
+          </text>
+
+          {/* Connection Count */}
+          <text
+            x={pitchWidth / 2}
+            y={pitchHeight - 15}
+            textAnchor="middle"
+            className="text-sm font-medium fill-white"
+          >
+            {significantConnections.length} connection{significantConnections.length !== 1 ? 's' : ''} shown
+            {chemistryFilter !== 'all' && ` (${chemistryFilter})`}
           </text>
         </svg>
       </div>

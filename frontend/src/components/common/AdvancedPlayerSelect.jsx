@@ -98,15 +98,23 @@ const AdvancedPlayerSelect = ({
         }
       }
 
-      if (!responseData.players) {
+      // Normalize players - handle array, object/dict, or missing
+      let playersArray = responseData.players
+      if (!playersArray) {
         console.error('No players in search response data:', responseData)
         setOptions([])
         return
       }
+      
+      // Convert object to array if needed
+      if (!Array.isArray(playersArray)) {
+        console.log('Converting players object to array')
+        playersArray = Object.values(playersArray)
+      }
 
-      console.log('Search players array length:', responseData.players.length)
+      console.log('Search players array length:', playersArray.length)
 
-      let playerOptions = responseData.players
+      let playerOptions = playersArray
         .filter(player => !excludeIds.includes(player.id))
 
       // Apply client-side filters

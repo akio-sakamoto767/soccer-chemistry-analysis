@@ -31,7 +31,17 @@ const PlayerSelect = ({
         min_minutes: 0  // Temporarily set to 0 to get any players
       })
 
-      const playerOptions = response.data.players
+      // Normalize players - handle array, object/dict, or missing
+      let playersArray = response.data.players
+      if (!playersArray) {
+        setOptions([])
+        return
+      }
+      if (!Array.isArray(playersArray)) {
+        playersArray = Object.values(playersArray)
+      }
+
+      const playerOptions = playersArray
         .filter(player => !excludeIds.includes(player.id))
         .map(player => ({
           value: player.id,
@@ -58,7 +68,17 @@ const PlayerSelect = ({
           min_minutes: 0
         })
 
-        const playerOptions = response.data.players
+        // Normalize players - handle array, object/dict, or missing
+        let playersArray = response.data.players
+        if (!playersArray) {
+          setOptions([])
+          return
+        }
+        if (!Array.isArray(playersArray)) {
+          playersArray = Object.values(playersArray)
+        }
+
+        const playerOptions = playersArray
           .filter(player => !excludeIds.includes(player.id))
           .map(player => ({
             value: player.id,

@@ -11,6 +11,34 @@ logger = logging.getLogger(__name__)
 class ChemistryCalculator:
     """Calculator for player chemistry metrics."""
     
+    @staticmethod
+    def safe_numeric(value, default=0.0):
+        """Convert value to float, handling strings and None safely."""
+        if value is None or value == '':
+            return default
+        try:
+            if isinstance(value, str):
+                value = value.strip()
+                if value == '' or value.lower() in ('null', 'none', 'nan'):
+                    return default
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+    
+    @staticmethod
+    def safe_int(value, default=0):
+        """Convert value to int, handling strings and None safely."""
+        if value is None or value == '':
+            return default
+        try:
+            if isinstance(value, str):
+                value = value.strip()
+                if value == '' or value.lower() in ('null', 'none', 'nan'):
+                    return default
+            return int(float(value))
+        except (ValueError, TypeError):
+            return default
+    
     # Role compatibility matrices
     OFFENSIVE_ROLE_COMPATIBILITY = {
         ('FWD', 'FWD'): 0.5,
@@ -208,25 +236,25 @@ class ChemistryCalculator:
         """Calculate enhanced statistical complementarity for offensive play."""
         
         # Get stats with defaults and normalize per 90 minutes
-        minutes1 = max(1, player1.get('minutes_played', 1) or 1)
-        minutes2 = max(1, player2.get('minutes_played', 1) or 1)
+        minutes1 = max(1, self.safe_numeric(player1.get('minutes_played'), 1))
+        minutes2 = max(1, self.safe_numeric(player2.get('minutes_played'), 1))
         
         # Normalize stats per 90 minutes
-        p1_goals_p90 = ((player1.get('goals', 0) or 0) / minutes1) * 90
-        p1_assists_p90 = ((player1.get('assists', 0) or 0) / minutes1) * 90
-        p1_shots_p90 = ((player1.get('shots', 0) or 0) / minutes1) * 90
-        p1_passes_p90 = ((player1.get('passes', 0) or 0) / minutes1) * 90
-        p1_key_passes_p90 = ((player1.get('key_passes', 0) or 0) / minutes1) * 90
-        p1_xg_assist_p90 = ((player1.get('xg_assist', 0) or 0) / minutes1) * 90
-        p1_dribbles_p90 = ((player1.get('successful_dribbles', 0) or 0) / minutes1) * 90
+        p1_goals_p90 = (self.safe_numeric(player1.get('goals')) / minutes1) * 90
+        p1_assists_p90 = (self.safe_numeric(player1.get('assists')) / minutes1) * 90
+        p1_shots_p90 = (self.safe_numeric(player1.get('shots')) / minutes1) * 90
+        p1_passes_p90 = (self.safe_numeric(player1.get('passes')) / minutes1) * 90
+        p1_key_passes_p90 = (self.safe_numeric(player1.get('key_passes')) / minutes1) * 90
+        p1_xg_assist_p90 = (self.safe_numeric(player1.get('xg_assist')) / minutes1) * 90
+        p1_dribbles_p90 = (self.safe_numeric(player1.get('successful_dribbles')) / minutes1) * 90
         
-        p2_goals_p90 = ((player2.get('goals', 0) or 0) / minutes2) * 90
-        p2_assists_p90 = ((player2.get('assists', 0) or 0) / minutes2) * 90
-        p2_shots_p90 = ((player2.get('shots', 0) or 0) / minutes2) * 90
-        p2_passes_p90 = ((player2.get('passes', 0) or 0) / minutes2) * 90
-        p2_key_passes_p90 = ((player2.get('key_passes', 0) or 0) / minutes2) * 90
-        p2_xg_assist_p90 = ((player2.get('xg_assist', 0) or 0) / minutes2) * 90
-        p2_dribbles_p90 = ((player2.get('successful_dribbles', 0) or 0) / minutes2) * 90
+        p2_goals_p90 = (self.safe_numeric(player2.get('goals')) / minutes2) * 90
+        p2_assists_p90 = (self.safe_numeric(player2.get('assists')) / minutes2) * 90
+        p2_shots_p90 = (self.safe_numeric(player2.get('shots')) / minutes2) * 90
+        p2_passes_p90 = (self.safe_numeric(player2.get('passes')) / minutes2) * 90
+        p2_key_passes_p90 = (self.safe_numeric(player2.get('key_passes')) / minutes2) * 90
+        p2_xg_assist_p90 = (self.safe_numeric(player2.get('xg_assist')) / minutes2) * 90
+        p2_dribbles_p90 = (self.safe_numeric(player2.get('successful_dribbles')) / minutes2) * 90
         
         # Calculate enhanced profiles
         p1_finishing = self._safe_divide(p1_goals_p90, p1_goals_p90 + p1_assists_p90 + 0.1)
@@ -301,15 +329,15 @@ class ChemistryCalculator:
         """Calculate defensive style complementarity."""
         
         # Get defensive stats
-        p1_tackles = player1.get('defensive_duels', 0) or 0
-        p1_interceptions = player1.get('interceptions', 0) or 0
-        p1_recoveries = player1.get('recoveries', 0) or 0
-        p1_minutes = player1.get('minutes_played', 1) or 1
+        p1_tackles = self.safe_numeric(player1.get('defensive_duels'))
+        p1_interceptions = self.safe_numeric(player1.get('interceptions'))
+        p1_recoveries = self.safe_numeric(player1.get('recoveries'))
+        p1_minutes = max(1, self.safe_numeric(player1.get('minutes_played'), 1))
         
-        p2_tackles = player2.get('defensive_duels', 0) or 0
-        p2_interceptions = player2.get('interceptions', 0) or 0
-        p2_recoveries = player2.get('recoveries', 0) or 0
-        p2_minutes = player2.get('minutes_played', 1) or 1
+        p2_tackles = self.safe_numeric(player2.get('defensive_duels'))
+        p2_interceptions = self.safe_numeric(player2.get('interceptions'))
+        p2_recoveries = self.safe_numeric(player2.get('recoveries'))
+        p2_minutes = max(1, self.safe_numeric(player2.get('minutes_played'), 1))
         
         # Calculate rates per 90
         p1_tackle_rate = (p1_tackles / p1_minutes) * 90
@@ -335,13 +363,14 @@ class ChemistryCalculator:
     ) -> float:
         """Calculate enhanced performance alignment with form factors."""
         
-        rating1 = player1.get('overall_rating')
-        rating2 = player2.get('overall_rating')
+        rating1 = self.safe_numeric(player1.get('overall_rating'), None)
+        rating2 = self.safe_numeric(player2.get('overall_rating'), None)
         
-        if rating1 is None or rating2 is None:
+        if rating1 is None or rating1 == 0:
             # Estimate from stats if rating not available
-            rating1 = self._estimate_rating(player1) if rating1 is None else rating1
-            rating2 = self._estimate_rating(player2) if rating2 is None else rating2
+            rating1 = self._estimate_rating(player1)
+        if rating2 is None or rating2 == 0:
+            rating2 = self._estimate_rating(player2)
         
         # Base Gaussian similarity for ratings
         diff = abs(rating1 - rating2)
@@ -360,14 +389,14 @@ class ChemistryCalculator:
         """Calculate form factor based on performance vs expectation."""
         
         # Get minutes played for per-90 calculations
-        minutes1 = max(1, player1.get('minutes_played', 1) or 1)
-        minutes2 = max(1, player2.get('minutes_played', 1) or 1)
+        minutes1 = max(1, self.safe_numeric(player1.get('minutes_played'), 1))
+        minutes2 = max(1, self.safe_numeric(player2.get('minutes_played'), 1))
         
         # Actual vs expected goals (form indicator)
-        goals1 = (player1.get('goals', 0) or 0) / (minutes1 / 90)
-        goals2 = (player2.get('goals', 0) or 0) / (minutes2 / 90)
-        xg1 = (player1.get('xg_shot', 0) or 0) / (minutes1 / 90)
-        xg2 = (player2.get('xg_shot', 0) or 0) / (minutes2 / 90)
+        goals1 = self.safe_numeric(player1.get('goals')) / (minutes1 / 90)
+        goals2 = self.safe_numeric(player2.get('goals')) / (minutes2 / 90)
+        xg1 = self.safe_numeric(player1.get('xg_shot')) / (minutes1 / 90)
+        xg2 = self.safe_numeric(player2.get('xg_shot')) / (minutes2 / 90)
         
         # Form ratio (actual/expected)
         form1 = goals1 / max(0.1, xg1) if xg1 > 0 else 1.0
@@ -389,13 +418,14 @@ class ChemistryCalculator:
     def _calculate_nationality_chemistry(self, player1: Dict, player2: Dict) -> float:
         """Calculate nationality-based chemistry following paper assumptions."""
         
-        # Get all citizenship areas (primary and secondary)
-        areas1 = [player1.get('citizenship_area_id'), player1.get('second_citizenship_area_id')]
-        areas2 = [player2.get('citizenship_area_id'), player2.get('second_citizenship_area_id')]
+        # Get all citizenship areas (primary and secondary) - convert to int
+        area1_primary = self.safe_int(player1.get('citizenship_area_id'), None)
+        area1_secondary = self.safe_int(player1.get('second_citizenship_area_id'), None)
+        area2_primary = self.safe_int(player2.get('citizenship_area_id'), None)
+        area2_secondary = self.safe_int(player2.get('second_citizenship_area_id'), None)
         
-        # Remove None values
-        areas1 = [area for area in areas1 if area is not None]
-        areas2 = [area for area in areas2 if area is not None]
+        areas1 = [area for area in [area1_primary, area1_secondary] if area is not None]
+        areas2 = [area for area in [area2_primary, area2_secondary] if area is not None]
         
         if not areas1 or not areas2:
             return 0.0
@@ -500,22 +530,24 @@ class ChemistryCalculator:
         bonus = 0.0
         
         # Same team (strongest bond)
-        if player1.get('team_id') and player2.get('team_id'):
-            if player1['team_id'] == player2['team_id']:
-                bonus += 0.25
+        team1 = self.safe_int(player1.get('team_id'), None)
+        team2 = self.safe_int(player2.get('team_id'), None)
+        if team1 and team2 and team1 == team2:
+            bonus += 0.25
         
         # Same league/competition
-        if player1.get('competition_id') and player2.get('competition_id'):
-            if player1['competition_id'] == player2['competition_id']:
-                bonus += 0.15
+        comp1 = self.safe_int(player1.get('competition_id'), None)
+        comp2 = self.safe_int(player2.get('competition_id'), None)
+        if comp1 and comp2 and comp1 == comp2:
+            bonus += 0.15
         
         # Same nationality bonus (enhanced)
         nationality_bonus = self._calculate_nationality_chemistry(player1, player2)
         bonus += nationality_bonus
         
         # Age compatibility (similar ages work better)
-        age1 = player1.get('age_years', 0) or 0
-        age2 = player2.get('age_years', 0) or 0
+        age1 = self.safe_numeric(player1.get('age_years'))
+        age2 = self.safe_numeric(player2.get('age_years'))
         if age1 > 0 and age2 > 0:
             age_diff = abs(age1 - age2)
             if age_diff <= 2:
@@ -524,8 +556,8 @@ class ChemistryCalculator:
                 bonus += 0.05  # Similar generation
         
         # Experience level compatibility (similar overall ratings)
-        rating1 = player1.get('overall_rating', 0) or 0
-        rating2 = player2.get('overall_rating', 0) or 0
+        rating1 = self.safe_numeric(player1.get('overall_rating'))
+        rating2 = self.safe_numeric(player2.get('overall_rating'))
         if rating1 > 0 and rating2 > 0:
             rating_diff = abs(rating1 - rating2)
             if rating_diff <= 3:
@@ -591,9 +623,9 @@ class ChemistryCalculator:
     def _estimate_rating(self, player: Dict) -> float:
         """Estimate player rating from stats if not available."""
         
-        goals = player.get('goals', 0) or 0
-        assists = player.get('assists', 0) or 0
-        minutes = player.get('minutes_played', 1) or 1
+        goals = self.safe_numeric(player.get('goals'))
+        assists = self.safe_numeric(player.get('assists'))
+        minutes = max(1, self.safe_numeric(player.get('minutes_played'), 1))
         
         # Simple estimation
         goals_per_90 = (goals / minutes) * 90
